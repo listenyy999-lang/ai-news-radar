@@ -1,0 +1,43 @@
+name: Archive Daily AI News
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 每天 23:30 CST（UTC+8）= 15:30 UTC
+    - cron: "30 15 * * *"
+
+concurrency:
+  group: archive-ai-news-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  archive:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Run archive script
+        run: python scripts/archive_news.py --data-dir data --archive-dir archive
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add archive/
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          DATE=$(python -c "from datetime import datetime,timezone,timedelta; print(datetime.now(timezone(timedelta(hours=8))).strftime('%Y-%m-%d'))")
+          git commit -m "chore: archive daily ai news ${DATE}"
+          git push
