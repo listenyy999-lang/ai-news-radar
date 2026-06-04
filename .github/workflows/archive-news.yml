@@ -40,4 +40,5 @@ jobs:
           fi
           DATE=$(python -c "from datetime import datetime,timezone,timedelta; print(datetime.now(timezone(timedelta(hours=8))).strftime('%Y-%m-%d'))")
           git commit -m "chore: archive daily ai news ${DATE}"
+          git pull --rebase origin master
           git push
