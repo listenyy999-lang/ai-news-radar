@@ -8,7 +8,6 @@
   <link rel="icon" href="./assets/logo.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="./assets/styles.css?v=bole-event-merge-0525" />
   <style>
-    /* ── 归档页专用样式 ── */
     .archive-shell {
       max-width: 860px;
       margin: 0 auto;
@@ -34,72 +33,81 @@
       transition: color 0.15s, border-color 0.15s;
     }
     .archive-nav a.back-link:hover { color: var(--text, #222); border-color: var(--text-secondary, #888); }
-    .archive-title { font-size: 1.5rem; font-weight: 700; margin: 0; }
-    .archive-subtitle { font-size: 0.875rem; color: var(--text-secondary, #888); margin: 0.25rem 0 0; }
+    .archive-page-title { font-size: 1.5rem; font-weight: 700; margin: 0; }
+    .archive-page-sub { font-size: 0.875rem; color: var(--text-secondary, #888); margin: 0.25rem 0 0; }
+
+    /* 布局 */
+    @media (min-width: 640px) {
+      .archive-layout { display: grid; grid-template-columns: 190px 1fr; gap: 2rem; align-items: start; }
+    }
 
     /* 日期列表 */
-    .date-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      margin-top: 1.5rem;
-    }
+    .date-list { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 1rem; }
     .date-btn {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.75rem 1rem;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.6rem 0.85rem;
       background: var(--card-bg, #fff);
       border: 1px solid var(--border, #e0e0e0);
       border-radius: 8px;
-      cursor: pointer;
-      text-align: left;
-      font-size: 0.9375rem;
-      font-family: inherit;
+      cursor: pointer; text-align: left;
+      font-size: 0.875rem; font-family: inherit;
       transition: background 0.15s, border-color 0.15s;
       color: var(--text, #222);
     }
     .date-btn:hover { background: var(--hover-bg, #f5f5f5); border-color: var(--accent, #555); }
     .date-btn.active { border-color: var(--accent, #333); background: var(--active-bg, #f0f0f0); font-weight: 600; }
-    .date-btn .date-label { font-variant-numeric: tabular-nums; }
-    .date-btn .date-count { font-size: 0.8125rem; color: var(--text-secondary, #888); }
+    .date-btn .date-count { font-size: 0.75rem; color: var(--text-secondary, #888); }
 
-    /* 文章列表（复用 index 的 .news-card 样式） */
-    .archive-content { margin-top: 2rem; }
-    .archive-content-head {
-      display: flex;
-      align-items: baseline;
-      gap: 0.75rem;
-      margin-bottom: 1rem;
+    /* 归档内容区 */
+    .archive-content { margin-top: 1rem; }
+    .archive-day-head {
+      display: flex; align-items: baseline; gap: 0.75rem;
+      margin-bottom: 1.25rem;
     }
-    .archive-content-head h2 { font-size: 1.125rem; margin: 0; }
-    .archive-content-head .count { font-size: 0.875rem; color: var(--text-secondary, #888); }
+    .archive-day-head h2 { font-size: 1.125rem; margin: 0; }
+    .archive-day-head .count { font-size: 0.875rem; color: var(--text-secondary, #888); }
 
-    .archive-site-group { margin-bottom: 1.5rem; }
-    .archive-site-head {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 0;
-      border-bottom: 1px solid var(--border, #e0e0e0);
+    /* 伯乐精选区 — 复用 index 的 bole 样式 */
+    .archive-bole-wrap {
+      margin-bottom: 2rem;
+    }
+    .archive-bole-head {
+      display: flex; align-items: baseline; justify-content: space-between;
       margin-bottom: 0.5rem;
     }
-    .archive-site-head h3 { font-size: 0.9375rem; margin: 0; }
-    .archive-site-head span { font-size: 0.8125rem; color: var(--text-secondary, #888); }
-
-    .empty-tip {
-      color: var(--text-secondary, #888);
-      font-size: 0.9375rem;
-      padding: 2rem 0;
-      text-align: center;
+    .archive-bole-head h3 {
+      font-size: 1rem; margin: 0;
+      display: flex; align-items: center; gap: 0.4rem;
     }
+    .archive-bole-meta { font-size: 0.8125rem; color: var(--text-secondary, #888); }
+
+    /* 完整列表 */
+    .archive-all-section { margin-top: 2rem; }
+    .archive-all-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border, #e0e0e0);
+      margin-bottom: 1rem;
+    }
+    .archive-all-head h3 { font-size: 0.9375rem; margin: 0; }
+    .archive-all-toggle {
+      font-size: 0.8125rem; color: var(--text-secondary, #888);
+      background: none; border: none; cursor: pointer; font-family: inherit;
+      padding: 0; text-decoration: underline;
+    }
+
+    .archive-site-group { margin-bottom: 1.25rem; }
+    .archive-site-head {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.4rem 0;
+      border-bottom: 1px solid var(--border, #e0e0e0);
+      margin-bottom: 0.4rem;
+    }
+    .archive-site-head h4 { font-size: 0.875rem; margin: 0; }
+    .archive-site-head span { font-size: 0.75rem; color: var(--text-secondary, #888); }
+
+    .empty-tip { color: var(--text-secondary, #888); font-size: 0.9375rem; padding: 2rem 0; text-align: center; }
     .loading-tip { color: var(--text-secondary, #888); font-size: 0.9375rem; }
-
-    /* 移动端：日期列表和内容并列 → 上下堆叠 */
-    @media (min-width: 640px) {
-      .archive-layout { display: grid; grid-template-columns: 200px 1fr; gap: 2rem; align-items: start; }
-      .date-list { margin-top: 0; }
-    }
   </style>
 </head>
 <body>
@@ -107,8 +115,8 @@
   <nav class="archive-nav">
     <a class="back-link" href="./index.html">← 返回雷达首页</a>
     <div>
-      <h1 class="archive-title">历史归档</h1>
-      <p class="archive-subtitle">每日 23:30 CST 自动归档 · 点击日期查看当天 AI 精选</p>
+      <h1 class="archive-page-title">历史归档</h1>
+      <p class="archive-page-sub">每日 23:30 CST 自动归档 · 点击日期查看当天伯乐精选</p>
     </div>
   </nav>
 
@@ -118,9 +126,7 @@
     <div>
       <div id="dateList" class="date-list"></div>
     </div>
-    <div>
-      <div id="archiveContent" class="archive-content"></div>
-    </div>
+    <div id="archiveContent" class="archive-content"></div>
   </div>
 </div>
 
@@ -140,13 +146,7 @@
 (function () {
   'use strict';
 
-  const indexStatusEl = document.getElementById('indexStatus');
-  const archiveLayoutEl = document.getElementById('archiveLayout');
-  const dateListEl = document.getElementById('dateList');
-  const archiveContentEl = document.getElementById('archiveContent');
-  const cardTpl = document.getElementById('newsCardTpl');
-
-  let currentDate = null;
+  // ── 从 app.js 移植的伯乐精选核心逻辑 ──────────────────────────
 
   function fmtTime(iso) {
     if (!iso) return '';
@@ -156,15 +156,165 @@
   }
 
   function fmtDateLabel(dateStr) {
-    // "2026-06-04" → "6月4日（周四）"
     const d = new Date(dateStr + 'T12:00:00+08:00');
     if (isNaN(d.getTime())) return dateStr;
     return new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' }).format(d);
   }
 
-  function itemTitle(item) {
+  function itemTitleText(item) {
     return (item.title_zh || item.title || item.title_en || '无标题').trim();
   }
+
+  function scorePercent(item) {
+    const score = Number(item.ai_score ?? item.score ?? 0);
+    if (!Number.isFinite(score) || score <= 0) return 0;
+    return Math.round(score <= 1 ? score * 100 : score);
+  }
+
+  function scoreTone(score) {
+    if (score >= 90) return 'hot';
+    if (score >= 75) return 'strong';
+    return 'watch';
+  }
+
+  function labelText(item) {
+    const labels = {
+      ai_general: 'AI信号', model_release: '模型发布',
+      agent_workflow: 'Agent工作流', ai_product_update: '产品更新',
+      developer_tooling: '开发工具', infrastructure: '基础设施',
+    };
+    return labels[item.ai_label] || item.ai_label || '精选信号';
+  }
+
+  function reasonText(item) {
+    const signals = Array.isArray(item.ai_signals) ? item.ai_signals.filter(Boolean).slice(0, 3) : [];
+    if (signals.length) return `命中：${signals.join(' / ')}`;
+    if (item.ai_relevance_reason) return String(item.ai_relevance_reason).replaceAll('_', ' ');
+    return '来源与标题信号通过筛选';
+  }
+
+  function timelineIso(item, generatedAt) {
+    const published = item.published_at || '';
+    const seen = item.first_seen_at || '';
+    if (published && generatedAt) {
+      const publishedMs = new Date(published).getTime();
+      const generatedMs = new Date(generatedAt).getTime();
+      if (Number.isFinite(publishedMs) && Number.isFinite(generatedMs) && publishedMs > generatedMs + 10 * 60 * 1000) {
+        return seen || published;
+      }
+    }
+    return published || seen;
+  }
+
+  function timelineMs(item, generatedAt) {
+    const d = new Date(timelineIso(item, generatedAt));
+    return isNaN(d.getTime()) ? 0 : d.getTime();
+  }
+
+  function normalizedEventText(text) {
+    return String(text || '').toLowerCase()
+      .replace(/https?:\/\/\S+/g, '')
+      .replace(/[\s　]+/g, '')
+      .replace(/[，。、""''：:；;！!？?（）()\[\]【】《》<>·.,/\\|_-]/g, '');
+  }
+
+  function eventKey(item) {
+    const raw = itemTitleText(item);
+    const bracket = raw.match(/《([^》]{4,40})》/);
+    if (bracket) return `book:${normalizedEventText(bracket[1]).slice(0, 36)}`;
+    const normalized = normalizedEventText(raw);
+    const model = normalized.match(/(deepseekv\d+(?:pro)?|grokv\d+(?:medium)?|gemini\d+(?:\.\d+)?(?:flash|pro)?|gpt\d+(?:\.\d+)?|llama\d+)/);
+    if (model) return `entity:${model[1]}`;
+    return `title:${normalized.slice(0, 34)}`;
+  }
+
+  function sourceSignal(item) {
+    const site = item.site_name || '';
+    const source = item.source || '';
+    const hay = `${site} ${source}`.toLowerCase();
+    if (site === 'AI HOT') return 'AI HOT精选';
+    if (hay.includes('hackernews') || hay.includes('hacker news')) return 'HN热议';
+    if (source.includes('GitHub · Trending Today') || hay.includes('github')) return 'GitHub趋势';
+    if (site === 'Official AI Updates') return '官方更新';
+    if (site === 'Follow Builders') return 'Builders';
+    if (site === 'AIbase') return 'AIbase';
+    if (site === 'OPML RSS') return 'OPML';
+    return site || '来源';
+  }
+
+  function sourcePriority(item) {
+    const s = sourceSignal(item);
+    if (s === '官方更新') return 100;
+    if (s === 'AI HOT精选') return 90;
+    if (s === 'AIbase') return 82;
+    if (s === 'Builders') return 74;
+    if (s === 'OPML') return 68;
+    if (s === 'HN热议' || s === 'GitHub趋势') return 62;
+    return 50;
+  }
+
+  function clusterBoleEvents(rows, generatedAt) {
+    const clusters = new Map();
+    rows.forEach((row) => {
+      const key = eventKey(row.item);
+      if (!clusters.has(key)) clusters.set(key, { key, rows: [], signals: new Set(), primary: row });
+      const cluster = clusters.get(key);
+      cluster.rows.push(row);
+      cluster.signals.add(sourceSignal(row.item));
+      const better = sourcePriority(row.item) - sourcePriority(cluster.primary.item)
+        || row.score - cluster.primary.score
+        || timelineMs(row.item, generatedAt) - timelineMs(cluster.primary.item, generatedAt);
+      if (better > 0) cluster.primary = row;
+    });
+    return Array.from(clusters.values()).map((cluster) => {
+      const signals = Array.from(cluster.signals);
+      const maxScore = Math.max(...cluster.rows.map(r => r.score));
+      const sourceBonus = Math.min(12, Math.max(0, signals.length - 1) * 6);
+      const candidateBonus = signals.some(s => s === 'AI HOT精选') ? 8
+        : signals.some(s => s === 'HN热议' || s === 'GitHub趋势') ? 6
+        : signals.some(s => s === '官方更新') ? 5 : 0;
+      return {
+        item: cluster.primary.item,
+        index: cluster.primary.index,
+        rows: cluster.rows,
+        sourceSignals: signals,
+        sourceCount: signals.length,
+        mergedCount: cluster.rows.length,
+        score: Math.min(100, Math.round(maxScore + sourceBonus + candidateBonus)),
+      };
+    });
+  }
+
+  function pickBoleItems(items, generatedAt) {
+    const ranked = [...items]
+      .map((item, index) => ({ item, index, score: scorePercent(item) }))
+      .filter(row => row.score > 0)
+      .sort((a, b) => b.score - a.score || timelineMs(b.item, generatedAt) - timelineMs(a.item, generatedAt) || a.index - b.index);
+
+    const sorted = clusterBoleEvents(ranked, generatedAt).sort((a, b) =>
+      (b.sourceCount - a.sourceCount) || (b.score - a.score) ||
+      timelineMs(b.item, generatedAt) - timelineMs(a.item, generatedAt) || a.index - b.index
+    );
+
+    const picked = [];
+    const addPick = (cluster) => { if (cluster && !picked.includes(cluster) && picked.length < 8) picked.push(cluster); };
+    ['AI HOT精选', 'HN热议', 'GitHub趋势'].forEach(signal => {
+      addPick(sorted.find(c => c.sourceSignals.includes(signal)));
+    });
+    sorted.forEach(addPick);
+    return picked;
+  }
+
+  function boleReasonText(row) {
+    const signals = row.sourceSignals || [];
+    const sourceText = signals.length ? `来源命中：${signals.join(' / ')}` : '来源命中：单源';
+    const mergeText = row.mergedCount > 1 ? `合并${row.mergedCount}条同事件` : '单条事件';
+    return `${sourceText} · ${mergeText} · ${reasonText(row.item)}`;
+  }
+
+  // ── 渲染函数 ───────────────────────────────────────────────────
+
+  const cardTpl = document.getElementById('newsCardTpl');
 
   function renderCard(item) {
     const node = cardTpl.content.firstElementChild.cloneNode(true);
@@ -176,13 +326,9 @@
     const zh = (item.title_zh || '').trim();
     const en = (item.title_en || '').trim();
     if (zh && en && zh !== en) {
-      const primary = document.createElement('span');
-      primary.textContent = zh;
-      const sub = document.createElement('span');
-      sub.className = 'title-sub';
-      sub.textContent = en;
-      titleEl.appendChild(primary);
-      titleEl.appendChild(sub);
+      const primary = document.createElement('span'); primary.textContent = zh;
+      const sub = document.createElement('span'); sub.className = 'title-sub'; sub.textContent = en;
+      titleEl.appendChild(primary); titleEl.appendChild(sub);
     } else {
       titleEl.textContent = item.title || zh || en;
     }
@@ -190,77 +336,161 @@
     return node;
   }
 
-  function renderDaySnapshot(snapshot) {
-    archiveContentEl.innerHTML = '';
+  function buildBoleRow(row, rank, generatedAt) {
+    const { item, score } = row;
+    const link = document.createElement('a');
+    link.className = 'bole-row';
+    link.href = item.url || '#';
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
 
-    const head = document.createElement('div');
-    head.className = 'archive-content-head';
-    const h2 = document.createElement('h2');
-    h2.textContent = fmtDateLabel(snapshot.archive_date);
-    const count = document.createElement('span');
-    count.className = 'count';
-    count.textContent = `${snapshot.total_ai || 0} 条 AI 精选`;
-    head.append(h2, count);
-    archiveContentEl.appendChild(head);
+    const time = document.createElement('time');
+    time.className = 'bole-row-time';
+    time.textContent = fmtTime(timelineIso(item, generatedAt));
 
-    const items = snapshot.items_ai || [];
-    if (!items.length) {
-      const tip = document.createElement('div');
-      tip.className = 'empty-tip';
-      tip.textContent = '当天没有归档数据。';
-      archiveContentEl.appendChild(tip);
-      return;
+    const body = document.createElement('div');
+    body.className = 'bole-row-body';
+
+    const meta = document.createElement('div');
+    meta.className = 'bole-row-meta';
+    meta.innerHTML = `<span>#${rank}</span><span>${item.site_name || '来源'}</span><strong>${score}分</strong>`;
+    (row.sourceSignals || []).slice(0, 4).forEach(signal => {
+      const tag = document.createElement('span');
+      tag.className = 'source-hit';
+      tag.textContent = signal;
+      meta.appendChild(tag);
+    });
+
+    const title = document.createElement('div');
+    title.className = 'bole-row-title';
+    title.textContent = itemTitleText(item);
+
+    const reason = document.createElement('div');
+    reason.className = 'bole-row-reason';
+    reason.textContent = boleReasonText(row);
+
+    body.append(meta, title, reason);
+    link.append(time, body);
+    return link;
+  }
+
+  function renderBolePicks(items, generatedAt, container) {
+    container.innerHTML = '';
+    const picks = pickBoleItems(items, generatedAt);
+    if (!picks.length) {
+      container.innerHTML = '<div class="empty-tip">当天数据没有评分字段，无法生成伯乐精选。</div>';
+      return 0;
     }
+    const timelinePicks = [...picks].sort((a, b) =>
+      timelineMs(b.item, generatedAt) - timelineMs(a.item, generatedAt) || b.score - a.score
+    );
+    const list = document.createElement('div');
+    list.className = 'bole-compact-list';
+    timelinePicks.forEach((row, i) => list.appendChild(buildBoleRow(row, i + 1, generatedAt)));
+    container.appendChild(list);
+    return picks.length;
+  }
 
-    // 按站点分组
+  function renderFullList(items, container) {
     const siteMap = new Map();
     items.forEach(item => {
       const key = item.site_id || 'unknown';
       if (!siteMap.has(key)) siteMap.set(key, { name: item.site_name || key, items: [] });
       siteMap.get(key).items.push(item);
     });
-
     const sites = Array.from(siteMap.entries()).sort((a, b) => b[1].items.length - a[1].items.length);
     const frag = document.createDocumentFragment();
     sites.forEach(([, site]) => {
       const section = document.createElement('div');
       section.className = 'archive-site-group';
-
-      const siteHead = document.createElement('div');
-      siteHead.className = 'archive-site-head';
-      const siteTitle = document.createElement('h3');
-      siteTitle.textContent = site.name;
-      const siteCount = document.createElement('span');
-      siteCount.textContent = `${site.items.length} 条`;
-      siteHead.append(siteTitle, siteCount);
-      section.appendChild(siteHead);
-
+      const head = document.createElement('div');
+      head.className = 'archive-site-head';
+      const h4 = document.createElement('h4'); h4.textContent = site.name;
+      const cnt = document.createElement('span'); cnt.textContent = `${site.items.length} 条`;
+      head.append(h4, cnt);
+      section.appendChild(head);
       site.items.forEach(item => section.appendChild(renderCard(item)));
       frag.appendChild(section);
     });
-    archiveContentEl.appendChild(frag);
+    container.appendChild(frag);
   }
 
-  async function loadDay(dateStr) {
-    if (currentDate === dateStr) return;
-    currentDate = dateStr;
+  function renderDaySnapshot(snapshot) {
+    const contentEl = document.getElementById('archiveContent');
+    contentEl.innerHTML = '';
 
-    // 更新按钮高亮
-    document.querySelectorAll('.date-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.date === dateStr);
+    const items = snapshot.items_ai || [];
+    const generatedAt = snapshot.generated_at || snapshot.archived_at;
+
+    // 头部：日期 + 条数
+    const head = document.createElement('div');
+    head.className = 'archive-day-head';
+    const h2 = document.createElement('h2'); h2.textContent = fmtDateLabel(snapshot.archive_date);
+    const count = document.createElement('span'); count.className = 'count';
+    count.textContent = `${snapshot.total_ai || items.length} 条 AI 精选`;
+    head.append(h2, count);
+    contentEl.appendChild(head);
+
+    if (!items.length) {
+      contentEl.innerHTML += '<div class="empty-tip">当天没有归档数据。</div>';
+      return;
+    }
+
+    // 伯乐精选区
+    const boleWrap = document.createElement('div');
+    boleWrap.className = 'archive-bole-wrap';
+
+    const boleHead = document.createElement('div');
+    boleHead.className = 'archive-bole-head';
+    const boleTitle = document.createElement('h3');
+    boleTitle.innerHTML = '<span>BOLE PICKS</span> 伯乐精选';
+    const boleMeta = document.createElement('span');
+    boleMeta.className = 'archive-bole-meta';
+    boleMeta.textContent = '按时间倒序';
+    boleHead.append(boleTitle, boleMeta);
+
+    const boleList = document.createElement('div');
+    boleList.className = 'bole-board';
+
+    boleWrap.append(boleHead, boleList);
+    contentEl.appendChild(boleWrap);
+
+    const pickCount = renderBolePicks(items, generatedAt, boleList);
+    boleMeta.textContent = `按时间倒序 · Top ${pickCount}`;
+
+    // 完整列表（可折叠）
+    const allSection = document.createElement('div');
+    allSection.className = 'archive-all-section';
+
+    const allHead = document.createElement('div');
+    allHead.className = 'archive-all-head';
+    const allTitle = document.createElement('h3');
+    allTitle.textContent = '完整 AI 信号列表';
+    const allToggle = document.createElement('button');
+    allToggle.className = 'archive-all-toggle';
+    allToggle.textContent = '展开';
+    allHead.append(allTitle, allToggle);
+
+    const allBody = document.createElement('div');
+    allBody.style.display = 'none';
+    renderFullList(items, allBody);
+
+    allToggle.addEventListener('click', () => {
+      const hidden = allBody.style.display === 'none';
+      allBody.style.display = hidden ? '' : 'none';
+      allToggle.textContent = hidden ? '收起' : '展开';
     });
 
-    archiveContentEl.innerHTML = '<div class="loading-tip">加载中...</div>';
-
-    try {
-      const res = await fetch(`./archive/${dateStr}.json?t=${Date.now()}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const snapshot = await res.json();
-      renderDaySnapshot(snapshot);
-    } catch (err) {
-      archiveContentEl.innerHTML = `<div class="empty-tip">加载失败：${err.message}</div>`;
-    }
+    allSection.append(allHead, allBody);
+    contentEl.appendChild(allSection);
   }
+
+  // ── 日期列表 & 初始化 ─────────────────────────────────────────
+
+  const indexStatusEl = document.getElementById('indexStatus');
+  const archiveLayoutEl = document.getElementById('archiveLayout');
+  const dateListEl = document.getElementById('dateList');
+  let currentDate = null;
 
   function renderDateList(dates) {
     dateListEl.innerHTML = '';
@@ -272,19 +502,31 @@
       const btn = document.createElement('button');
       btn.className = 'date-btn';
       btn.dataset.date = entry.date;
-
       const label = document.createElement('span');
-      label.className = 'date-label';
-      label.textContent = fmtDateLabel(entry.date);
-
+      label.textContent = entry.date;
       const countEl = document.createElement('span');
       countEl.className = 'date-count';
       countEl.textContent = entry.total_ai ? `${entry.total_ai} 条` : '';
-
       btn.append(label, countEl);
       btn.addEventListener('click', () => loadDay(entry.date));
       dateListEl.appendChild(btn);
     });
+  }
+
+  async function loadDay(dateStr) {
+    if (currentDate === dateStr) return;
+    currentDate = dateStr;
+    document.querySelectorAll('.date-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.date === dateStr);
+    });
+    document.getElementById('archiveContent').innerHTML = '<div class="loading-tip">加载中...</div>';
+    try {
+      const res = await fetch(`./archive/${dateStr}.json?t=${Date.now()}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      renderDaySnapshot(await res.json());
+    } catch (err) {
+      document.getElementById('archiveContent').innerHTML = `<div class="empty-tip">加载失败：${err.message}</div>`;
+    }
   }
 
   async function init() {
@@ -293,17 +535,12 @@
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const index = await res.json();
       const dates = index.dates || [];
-
       indexStatusEl.style.display = 'none';
       archiveLayoutEl.style.display = '';
-
       renderDateList(dates);
-
-      // 自动加载最新一天
       if (dates.length) loadDay(dates[0].date);
-      else {
-        archiveContentEl.innerHTML = '<div class="empty-tip">暂无归档记录，工作流每晚 23:30 CST 首次运行后才会产生数据。</div>';
-      }
+      else document.getElementById('archiveContent').innerHTML =
+        '<div class="empty-tip">暂无归档记录，工作流每晚 23:30 CST 首次运行后才会产生数据。</div>';
     } catch (err) {
       indexStatusEl.textContent = `归档索引加载失败：${err.message}。工作流首次运行后才会产生 archive/index.json。`;
     }
