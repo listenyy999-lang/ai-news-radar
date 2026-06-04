@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>历史归档 | AI News Radar</title>
+  <meta name="description" content="AI News Radar 每日精选归档，按日期回看历史 AI 更新。" />
+  <link rel="icon" href="./assets/logo.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="./assets/styles.css?v=bole-event-merge-0525" />
+  <style>
+    /* ── 归档页专用样式 ── */
+    .archive-shell {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 2rem 1rem 4rem;
+    }
+    .archive-nav {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+    .archive-nav a.back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.875rem;
+      color: var(--text-secondary, #888);
+      text-decoration: none;
+      padding: 0.35rem 0.8rem;
+      border: 1px solid var(--border, #e0e0e0);
+      border-radius: 20px;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .archive-nav a.back-link:hover { color: var(--text, #222); border-color: var(--text-secondary, #888); }
+    .archive-title { font-size: 1.5rem; font-weight: 700; margin: 0; }
+    .archive-subtitle { font-size: 0.875rem; color: var(--text-secondary, #888); margin: 0.25rem 0 0; }
+
+    /* 日期列表 */
+    .date-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
+    }
+    .date-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      background: var(--card-bg, #fff);
+      border: 1px solid var(--border, #e0e0e0);
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: left;
+      font-size: 0.9375rem;
+      font-family: inherit;
+      transition: background 0.15s, border-color 0.15s;
+      color: var(--text, #222);
+    }
+    .date-btn:hover { background: var(--hover-bg, #f5f5f5); border-color: var(--accent, #555); }
+    .date-btn.active { border-color: var(--accent, #333); background: var(--active-bg, #f0f0f0); font-weight: 600; }
+    .date-btn .date-label { font-variant-numeric: tabular-nums; }
+    .date-btn .date-count { font-size: 0.8125rem; color: var(--text-secondary, #888); }
+
+    /* 文章列表（复用 index 的 .news-card 样式） */
+    .archive-content { margin-top: 2rem; }
+    .archive-content-head {
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .archive-content-head h2 { font-size: 1.125rem; margin: 0; }
+    .archive-content-head .count { font-size: 0.875rem; color: var(--text-secondary, #888); }
+
+    .archive-site-group { margin-bottom: 1.5rem; }
+    .archive-site-head {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border, #e0e0e0);
+      margin-bottom: 0.5rem;
+    }
+    .archive-site-head h3 { font-size: 0.9375rem; margin: 0; }
+    .archive-site-head span { font-size: 0.8125rem; color: var(--text-secondary, #888); }
+
+    .empty-tip {
+      color: var(--text-secondary, #888);
+      font-size: 0.9375rem;
+      padding: 2rem 0;
+      text-align: center;
+    }
+    .loading-tip { color: var(--text-secondary, #888); font-size: 0.9375rem; }
+
+    /* 移动端：日期列表和内容并列 → 上下堆叠 */
+    @media (min-width: 640px) {
+      .archive-layout { display: grid; grid-template-columns: 200px 1fr; gap: 2rem; align-items: start; }
+      .date-list { margin-top: 0; }
+    }
+  </style>
+</head>
+<body>
+<div class="archive-shell">
+  <nav class="archive-nav">
+    <a class="back-link" href="./index.html">← 返回雷达首页</a>
+    <div>
+      <h1 class="archive-title">历史归档</h1>
+      <p class="archive-subtitle">每日 23:30 CST 自动归档 · 点击日期查看当天 AI 精选</p>
+    </div>
+  </nav>
+
+  <div id="indexStatus" class="loading-tip">加载归档索引中...</div>
+
+  <div class="archive-layout" id="archiveLayout" style="display:none">
+    <div>
+      <div id="dateList" class="date-list"></div>
+    </div>
+    <div>
+      <div id="archiveContent" class="archive-content"></div>
+    </div>
+  </div>
+</div>
+
+<template id="newsCardTpl">
+  <article class="news-card">
+    <div class="meta-row">
+      <span class="site"></span>
+      <span class="category"></span>
+      <span class="source"></span>
+      <time class="time"></time>
+    </div>
+    <a class="title" target="_blank" rel="noopener noreferrer"></a>
+  </article>
+</template>
+
+<script>
+(function () {
+  'use strict';
+
+  const indexStatusEl = document.getElementById('indexStatus');
+  const archiveLayoutEl = document.getElementById('archiveLayout');
+  const dateListEl = document.getElementById('dateList');
+  const archiveContentEl = document.getElementById('archiveContent');
+  const cardTpl = document.getElementById('newsCardTpl');
+
+  let currentDate = null;
+
+  function fmtTime(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(d);
+  }
+
+  function fmtDateLabel(dateStr) {
+    // "2026-06-04" → "6月4日（周四）"
+    const d = new Date(dateStr + 'T12:00:00+08:00');
+    if (isNaN(d.getTime())) return dateStr;
+    return new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' }).format(d);
+  }
+
+  function itemTitle(item) {
+    return (item.title_zh || item.title || item.title_en || '无标题').trim();
+  }
+
+  function renderCard(item) {
+    const node = cardTpl.content.firstElementChild.cloneNode(true);
+    node.querySelector('.site').textContent = item.site_name || '';
+    node.querySelector('.category').textContent = item.source || '';
+    node.querySelector('.source').textContent = '';
+    node.querySelector('.time').textContent = fmtTime(item.published_at || item.first_seen_at);
+    const titleEl = node.querySelector('.title');
+    const zh = (item.title_zh || '').trim();
+    const en = (item.title_en || '').trim();
+    if (zh && en && zh !== en) {
+      const primary = document.createElement('span');
+      primary.textContent = zh;
+      const sub = document.createElement('span');
+      sub.className = 'title-sub';
+      sub.textContent = en;
+      titleEl.appendChild(primary);
+      titleEl.appendChild(sub);
+    } else {
+      titleEl.textContent = item.title || zh || en;
+    }
+    titleEl.href = item.url || '#';
+    return node;
+  }
+
+  function renderDaySnapshot(snapshot) {
+    archiveContentEl.innerHTML = '';
+
+    const head = document.createElement('div');
+    head.className = 'archive-content-head';
+    const h2 = document.createElement('h2');
+    h2.textContent = fmtDateLabel(snapshot.archive_date);
+    const count = document.createElement('span');
+    count.className = 'count';
+    count.textContent = `${snapshot.total_ai || 0} 条 AI 精选`;
+    head.append(h2, count);
+    archiveContentEl.appendChild(head);
+
+    const items = snapshot.items_ai || [];
+    if (!items.length) {
+      const tip = document.createElement('div');
+      tip.className = 'empty-tip';
+      tip.textContent = '当天没有归档数据。';
+      archiveContentEl.appendChild(tip);
+      return;
+    }
+
+    // 按站点分组
+    const siteMap = new Map();
+    items.forEach(item => {
+      const key = item.site_id || 'unknown';
+      if (!siteMap.has(key)) siteMap.set(key, { name: item.site_name || key, items: [] });
+      siteMap.get(key).items.push(item);
+    });
+
+    const sites = Array.from(siteMap.entries()).sort((a, b) => b[1].items.length - a[1].items.length);
+    const frag = document.createDocumentFragment();
+    sites.forEach(([, site]) => {
+      const section = document.createElement('div');
+      section.className = 'archive-site-group';
+
+      const siteHead = document.createElement('div');
+      siteHead.className = 'archive-site-head';
+      const siteTitle = document.createElement('h3');
+      siteTitle.textContent = site.name;
+      const siteCount = document.createElement('span');
+      siteCount.textContent = `${site.items.length} 条`;
+      siteHead.append(siteTitle, siteCount);
+      section.appendChild(siteHead);
+
+      site.items.forEach(item => section.appendChild(renderCard(item)));
+      frag.appendChild(section);
+    });
+    archiveContentEl.appendChild(frag);
+  }
+
+  async function loadDay(dateStr) {
+    if (currentDate === dateStr) return;
+    currentDate = dateStr;
+
+    // 更新按钮高亮
+    document.querySelectorAll('.date-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.date === dateStr);
+    });
+
+    archiveContentEl.innerHTML = '<div class="loading-tip">加载中...</div>';
+
+    try {
+      const res = await fetch(`./archive/${dateStr}.json?t=${Date.now()}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const snapshot = await res.json();
+      renderDaySnapshot(snapshot);
+    } catch (err) {
+      archiveContentEl.innerHTML = `<div class="empty-tip">加载失败：${err.message}</div>`;
+    }
+  }
+
+  function renderDateList(dates) {
+    dateListEl.innerHTML = '';
+    if (!dates.length) {
+      dateListEl.innerHTML = '<div class="empty-tip">暂无归档记录。</div>';
+      return;
+    }
+    dates.forEach(entry => {
+      const btn = document.createElement('button');
+      btn.className = 'date-btn';
+      btn.dataset.date = entry.date;
+
+      const label = document.createElement('span');
+      label.className = 'date-label';
+      label.textContent = fmtDateLabel(entry.date);
+
+      const countEl = document.createElement('span');
+      countEl.className = 'date-count';
+      countEl.textContent = entry.total_ai ? `${entry.total_ai} 条` : '';
+
+      btn.append(label, countEl);
+      btn.addEventListener('click', () => loadDay(entry.date));
+      dateListEl.appendChild(btn);
+    });
+  }
+
+  async function init() {
+    try {
+      const res = await fetch(`./archive/index.json?t=${Date.now()}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const index = await res.json();
+      const dates = index.dates || [];
+
+      indexStatusEl.style.display = 'none';
+      archiveLayoutEl.style.display = '';
+
+      renderDateList(dates);
+
+      // 自动加载最新一天
+      if (dates.length) loadDay(dates[0].date);
+      else {
+        archiveContentEl.innerHTML = '<div class="empty-tip">暂无归档记录，工作流每晚 23:30 CST 首次运行后才会产生数据。</div>';
+      }
+    } catch (err) {
+      indexStatusEl.textContent = `归档索引加载失败：${err.message}。工作流首次运行后才会产生 archive/index.json。`;
+    }
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
