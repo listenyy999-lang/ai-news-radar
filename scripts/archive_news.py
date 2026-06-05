@@ -187,8 +187,10 @@ def call_glm_single_item(item: dict, date_str: str, api_key: str) -> str | None:
 
 
 def call_glm_items_analysis(items: list, date_str: str, api_key: str) -> int:
-    """对 top 8 条精选逐条单独调用 GLM，将解读直接写入 item['analysis']，返回成功条数。"""
-    top = get_top_items(items, 8)
+    """对 top 15 条精选逐条单独调用 GLM，将解读直接写入 item['analysis']，返回成功条数。
+    取15条而非8条，是因为前端伯乐精选的排序算法（多源聚合加分）与 ai_score 排序不同，
+    扩大覆盖范围确保前端显示的 top 8 均有解析。"""
+    top = get_top_items(items, 15)
     success = 0
     for i, item in enumerate(top, 1):
         short_title = (item.get("title_zh") or item.get("title") or "")[:30]
