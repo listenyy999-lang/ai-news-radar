@@ -10,23 +10,17 @@
   />
   <link rel="canonical" href="https://learnprompt.github.io/ai-news-radar/" />
   <meta property="og:title" content="AI News Radar｜24 小时 AI 更新雷达" />
-  <meta
-    property="og:description"
-    content="自动整理过去 24 小时值得看的 AI、模型和开发者工具更新；伯乐Skill（Scout Skill）帮你从一堆信源里选出千里马。"
-  />
+  <meta property="og:description" content="自动整理过去 24 小时值得看的 AI、模型和开发者工具更新；伯乐Skill（Scout Skill）帮你从一堆信源里选出千里马。" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://learnprompt.github.io/ai-news-radar/" />
   <meta property="og:site_name" content="AI News Radar" />
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:title" content="AI News Radar｜24 小时 AI 更新雷达" />
-  <meta
-    name="twitter:description"
-    content="自动整理过去 24 小时值得看的 AI、模型和开发者工具更新；伯乐Skill（Scout Skill）帮你从一堆信源里选出千里马。"
-  />
+  <meta name="twitter:description" content="自动整理过去 24 小时值得看的 AI、模型和开发者工具更新；伯乐Skill（Scout Skill）帮你从一堆信源里选出千里马。" />
   <link rel="icon" href="./assets/logo.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="./assets/styles.css?v=bole-event-merge-0525" />
   <style>
-    /* ── 历史归档入口 ── */
+    /* ── AI 晨报入口链接 ── */
     .archive-link {
       display: inline-block;
       margin-left: 1rem;
@@ -39,9 +33,51 @@
       transition: color 0.15s, border-color 0.15s;
       vertical-align: middle;
     }
-    .archive-link:hover {
+    .archive-link:hover { color: var(--text, #222); border-color: var(--text-secondary, #888); }
+
+    /* ── 今日速览卡片 ── */
+    .daily-brief {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+    .daily-brief-card {
+      background: linear-gradient(135deg, #f0f7ff 0%, #fafafa 100%);
+      border: 1px solid #c8dff7;
+      border-radius: 12px;
+      padding: 1.1rem 1.4rem 1.2rem;
+      margin-bottom: 0.5rem;
+    }
+    .daily-brief-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.65rem;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    .daily-brief-left { display: flex; align-items: center; gap: 0.5rem; }
+    .daily-brief-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: #1976d2;
+      color: #fff;
+      padding: 0.15rem 0.55rem;
+      border-radius: 10px;
+      letter-spacing: 0.03em;
+    }
+    .daily-brief-date { font-size: 0.8125rem; color: #888; }
+    .daily-brief-more {
+      font-size: 0.8rem;
+      color: #1976d2;
+      text-decoration: none;
+      opacity: 0.8;
+    }
+    .daily-brief-more:hover { opacity: 1; text-decoration: underline; }
+    .daily-brief-body {
+      font-size: 0.9375rem;
+      line-height: 1.75;
       color: var(--text, #222);
-      border-color: var(--text-secondary, #888);
     }
   </style>
 </head>
@@ -63,11 +99,25 @@
       <div class="hero-meta">
         <span class="updated-label">更新时间</span>
         <span class="updated" id="updatedAt">加载中...</span>
-        <a class="archive-link" href="./archive.html">📅 历史归档</a>
+        <a class="archive-link" href="./archive.html">📰 AI 晨报</a>
       </div>
       <section class="stats" id="stats"></section>
       <section class="coverage-strip" id="coverageStrip" aria-label="Source coverage status"></section>
     </header>
+
+    <!-- 今日速览 -->
+    <section class="daily-brief" id="dailyBrief" style="display:none">
+      <div class="daily-brief-card">
+        <div class="daily-brief-head">
+          <div class="daily-brief-left">
+            <span class="daily-brief-badge">✦ 今日要点</span>
+            <span class="daily-brief-date" id="dailyBriefDate"></span>
+          </div>
+          <a class="daily-brief-more" href="./archive.html">查看往期晨报 →</a>
+        </div>
+        <div class="daily-brief-body" id="dailyBriefText"></div>
+      </div>
+    </section>
 
     <section class="primary-controls">
       <input id="searchInput" type="search" placeholder="搜索 AI 信号 / 来源" />
@@ -152,6 +202,27 @@
       <a class="title" target="_blank" rel="noopener noreferrer"></a>
     </article>
   </template>
+
+  <!-- 今日速览：读取当天已生成的摘要文件，不调用任何 API -->
+  <script>
+  (function () {
+    function todayCST() {
+      const now = new Date(Date.now() + 8 * 60 * 60 * 1000);
+      return now.toISOString().slice(0, 10);
+    }
+    var date = todayCST();
+    fetch('./archive/' + date + '-summary.json?t=' + Date.now())
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data || !data.summary) return;
+        document.getElementById('dailyBriefDate').textContent =
+          date + ' · 每日 08:00 更新 · by ' + (data.model || 'GLM');
+        document.getElementById('dailyBriefText').textContent = data.summary;
+        document.getElementById('dailyBrief').style.display = '';
+      })
+      .catch(function () {});
+  })();
+  </script>
 
   <script src="./assets/app.js?v=bole-event-merge-0525" defer></script>
 </body>
