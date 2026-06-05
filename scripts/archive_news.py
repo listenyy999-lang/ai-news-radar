@@ -332,6 +332,10 @@ def glm_request(prompt: str, api_key: str, max_tokens: int = 512) -> str | None:
         "max_tokens": max_tokens,
         "temperature": 0.7,
     }
+    # glm-4.5 / glm-4.6 系列默认开启“深度思考”，思维链会占用 max_tokens，
+    # 导致正文被截断（页面出现半个汉字 / 乱码 �）。这里对这些模型显式关闭思考。
+    if GLM_MODEL.startswith(("glm-4.5", "glm-4.6")):
+        payload["thinking"] = {"type": "disabled"}
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
         "https://open.bigmodel.cn/api/paas/v4/chat/completions",
@@ -381,7 +385,7 @@ def call_glm_summary(items: list, date_str: str, api_key: str, generated_at: str
 {items_text}
 
 直接输出各条要点，每条一行，无需标题与编号。"""
-    return glm_request(prompt, api_key, max_tokens=800)
+    return glm_request(prompt, api_key, max_tokens=1200)
 
 
 # ── 调用2：逐条背景解读（每条单独调用，确保内容完整）──────────────
@@ -394,23 +398,24 @@ def call_glm_single_item(item: dict, date_str: str, api_key: str) -> str | None:
     label = LABEL_MAP.get(item.get("ai_label", ""), item.get("ai_label") or "AI信号")
     site = item.get("site_name") or ""
 
-    prompt = f"""你是一位资深AI科技记者，请对以下{date_str}的新闻进行专业分析报道，约500字。
+    prompt = f"""你是一家国际科技媒体（参照 The Information、Bloomberg、Reuters、The Verge 科技报道）的记者。请针对以下新闻写一篇约 400–500 字的专业分析，面向专业读者。
 
 新闻：【{label}】{title}（来源：{site}）
 
-分析报道应包含：
-① 背景：该公司、技术或事件的基本情况与行业地位
-② 事件详情：本次发布/发生了什么，核心要点是什么
-③ 深度分析：技术层面、商业层面或行业层面的实质意义，潜在影响与趋势
+内容组织（自然成段，不要写小标题）：
+1. 事实：到底发生了什么——谁、做了什么，连同能查到的关键数字（版本号、参数量、价格、性能指标、日期、金额、份额等）一并写清
+2. 背景：该公司 / 产品 / 技术目前所处的位置、主要竞争对手、此前的进展，用具体事实交代
+3. 影响：这件事的实际意义——对用户、竞争格局、成本或技术路线意味着什么；存在的取舍与不确定性要点明
 
-要求：
-- 字数500字左右，不少于400字
-- 采用专业新闻报道风格，语言简洁客观，信息密度高
-- 专业术语保留，首次出现时括号简要解释
-- 不得使用口语化或夸张表达
-- 直接输出分析正文，不要添加标题或任何前缀"""
+硬性要求（务必遵守）：
+- 像西方专业科技媒体那样写：讲数据、讲事实、讲来源，不讲口号、不含糊其辞
+- 严禁假大空与营销腔：不用“赋能、打造、引领、里程碑、生态、布局、重塑、护城河、强势、密集、深度赋能、新纪元”等空话套话
+- 不堆形容词、不下夸张判断；每个论断尽量有事实或数字支撑
+- 信息不足或无法核实的，直接写明“具体数据未披露”，绝不编造数字或细节
+- 专业术语首次出现时用括号给一句中文解释
+- 直接输出正文，不要标题、不要前缀、不要结尾升华或喊口号"""
 
-    return glm_request(prompt, api_key, max_tokens=900)
+    return glm_request(prompt, api_key, max_tokens=1600)
 
 
 def call_glm_items_analysis(items: list, date_str: str, api_key: str, generated_at: str = "") -> int:
