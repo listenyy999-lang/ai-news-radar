@@ -29,6 +29,11 @@ from datetime import datetime, timezone, timedelta
 
 CST = timezone(timedelta(hours=8))
 
+# GLM 模型：默认用 glm-4.5-air（赠送额度 1200 万 token，质量明显优于 flash）。
+# 想要最高质量可改为 "glm-4.6"（旗舰，走通用 token 额度，单价更高）；
+# 想最省可改回 "glm-4-flash"。改这一行即可，全脚本统一生效。
+GLM_MODEL = "glm-4.5-air"
+
 LABEL_MAP = {
     "ai_general": "AI综合",
     "model_release": "模型发布",
@@ -322,7 +327,7 @@ def pick_bole_items(items: list, generated_at: str = "") -> list:
 
 def glm_request(prompt: str, api_key: str, max_tokens: int = 512) -> str | None:
     payload = {
-        "model": "glm-4-flash",
+        "model": GLM_MODEL,
         "messages": [{"role": "user", "content": prompt}],
         "max_tokens": max_tokens,
         "temperature": 0.7,
@@ -512,7 +517,7 @@ def main():
             summary = {
                 "date": date_str,
                 "generated_at": datetime.now(timezone.utc).isoformat(),
-                "model": "glm-4-flash",
+                "model": GLM_MODEL,
                 "summary": summary_text or "",
                 "item_count": summary_item_count or min(len(items_ai), 8),
             }
