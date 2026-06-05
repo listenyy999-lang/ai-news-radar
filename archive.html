@@ -136,6 +136,29 @@
 
     .empty-tip { color: var(--text-secondary, #888); font-size: 0.9375rem; padding: 2rem 0; text-align: center; }
     .loading-tip { color: var(--text-secondary, #888); font-size: 0.9375rem; }
+
+    /* ── 背景解读展开区 ── */
+    .bole-analysis-toggle {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      margin-top: 0.5rem;
+      font-size: 0.8125rem;
+      color: #1976d2;
+      background: none; border: none; cursor: pointer;
+      font-family: inherit; padding: 0;
+      opacity: 0.85;
+    }
+    .bole-analysis-toggle:hover { opacity: 1; text-decoration: underline; }
+    .bole-analysis-body {
+      margin-top: 0.75rem;
+      padding: 0.9rem 1rem;
+      background: var(--card-bg, #fff);
+      border-left: 3px solid #1976d2;
+      border-radius: 0 6px 6px 0;
+      font-size: 0.9rem;
+      line-height: 1.8;
+      color: var(--text, #222);
+      white-space: pre-wrap;
+    }
   </style>
 </head>
 <body>
@@ -357,15 +380,18 @@
     return node;
   }
 
-  function buildBoleRow(row, rank, generatedAt) {
+  function buildBoleRow(row, rank, generatedAt, urlAnalysisMap) {
     const { item, score } = row;
-    const link = document.createElement('a');
-    link.className = 'bole-row';
-    link.href = item.url || '#';
-    link.target = '_blank'; link.rel = 'noopener noreferrer';
+
+    // 外层用 div（不是 <a>），让内部的解读按钮可以独立点击
+    const wrap = document.createElement('div');
+    wrap.className = 'bole-row';
+    wrap.style.cursor = 'default';
+
     const time = document.createElement('time');
     time.className = 'bole-row-time';
     time.textContent = fmtTime(timelineIso(item, generatedAt));
+
     const body = document.createElement('div'); body.className = 'bole-row-body';
     const meta = document.createElement('div'); meta.className = 'bole-row-meta';
     meta.innerHTML = `<span>#${rank}</span><span>${item.site_name || '来源'}</span><strong>${score}分</strong>`;
@@ -373,13 +399,48 @@
       const tag = document.createElement('span'); tag.className = 'source-hit'; tag.textContent = signal;
       meta.appendChild(tag);
     });
-    const title = document.createElement('div'); title.className = 'bole-row-title'; title.textContent = itemTitleText(item);
+
+    // 标题链接
+    const titleLink = document.createElement('a');
+    titleLink.className = 'bole-row-title';
+    titleLink.href = item.url || '#';
+    titleLink.target = '_blank'; titleLink.rel = 'noopener noreferrer';
+    titleLink.textContent = itemTitleText(item);
+    titleLink.style.cssText = 'display:block; text-decoration:none; color:inherit;';
+    titleLink.addEventListener('mouseover', () => titleLink.style.textDecoration = 'underline');
+    titleLink.addEventListener('mouseout', () => titleLink.style.textDecoration = 'none');
+
     const reason = document.createElement('div'); reason.className = 'bole-row-reason'; reason.textContent = boleReasonText(row);
-    body.append(meta, title, reason); link.append(time, body);
-    return link;
+    body.append(meta, titleLink, reason);
+
+    // 背景解读（如果有）
+    const analysis = urlAnalysisMap && item.url ? urlAnalysisMap[item.url] : null;
+    if (analysis) {
+      const toggle = document.createElement('button');
+      toggle.className = 'bole-analysis-toggle';
+      toggle.innerHTML = '📖 背景解读 <span style="font-size:0.7rem">▶</span>';
+
+      const analysisBody = document.createElement('div');
+      analysisBody.className = 'bole-analysis-body';
+      analysisBody.style.display = 'none';
+      analysisBody.textContent = analysis;
+
+      toggle.addEventListener('click', () => {
+        const hidden = analysisBody.style.display === 'none';
+        analysisBody.style.display = hidden ? 'block' : 'none';
+        toggle.innerHTML = hidden
+          ? '📖 背景解读 <span style="font-size:0.7rem">▼</span>'
+          : '📖 背景解读 <span style="font-size:0.7rem">▶</span>';
+      });
+
+      body.append(toggle, analysisBody);
+    }
+
+    wrap.append(time, body);
+    return wrap;
   }
 
-  function renderBolePicks(items, generatedAt, container) {
+  function renderBolePicks(items, generatedAt, container, urlAnalysisMap) {
     container.innerHTML = '';
     const picks = pickBoleItems(items, generatedAt);
     if (!picks.length) {
@@ -389,7 +450,7 @@
     const timelinePicks = [...picks].sort((a, b) =>
       timelineMs(b.item, generatedAt) - timelineMs(a.item, generatedAt) || b.score - a.score);
     const list = document.createElement('div'); list.className = 'bole-compact-list';
-    timelinePicks.forEach((row, i) => list.appendChild(buildBoleRow(row, i + 1, generatedAt)));
+    timelinePicks.forEach((row, i) => list.appendChild(buildBoleRow(row, i + 1, generatedAt, urlAnalysisMap)));
     container.appendChild(list);
     return picks.length;
   }
@@ -450,38 +511,51 @@
     head.append(h2, count);
     contentEl.appendChild(head);
 
-    // AI 摘要卡片（占位 → 异步加载）
+    // AI 摘要卡片（占位 → 异步加载）+ 同步加载 urlAnalysisMap 供伯乐精选使用
     const summarySlot = document.createElement('div');
     summarySlot.innerHTML = '<div class="summary-loading">AI 解读加载中...</div>';
     contentEl.appendChild(summarySlot);
-
-    // 异步加载摘要
-    fetch(`./archive/${dateStr}-summary.json?t=${Date.now()}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(summary => {
-        summarySlot.innerHTML = '';
-        if (summary && summary.summary) summarySlot.appendChild(renderSummaryCard(summary));
-        // 没有摘要则静默隐藏
-      })
-      .catch(() => { summarySlot.innerHTML = ''; });
 
     if (!items.length) {
       contentEl.innerHTML += '<div class="empty-tip">当天没有归档数据。</div>';
       return;
     }
 
-    // 伯乐精选
+    // 伯乐精选（先渲染占位，等 summary 加载后注入解读）
     const boleWrap = document.createElement('div'); boleWrap.className = 'archive-bole-wrap';
     const boleHead = document.createElement('div'); boleHead.className = 'archive-bole-head';
     const boleTitle = document.createElement('h3'); boleTitle.innerHTML = '<span>BOLE PICKS</span> 伯乐精选';
     const boleMeta = document.createElement('span'); boleMeta.className = 'archive-bole-meta';
-    boleMeta.textContent = '按时间倒序';
+    boleMeta.textContent = '加载中...';
     boleHead.append(boleTitle, boleMeta);
     const boleList = document.createElement('div'); boleList.className = 'bole-board';
     boleWrap.append(boleHead, boleList);
     contentEl.appendChild(boleWrap);
-    const pickCount = renderBolePicks(items, generatedAt, boleList);
-    boleMeta.textContent = `按时间倒序 · Top ${pickCount}`;
+
+    // 异步加载摘要，拿到 urlAnalysisMap 后再渲染伯乐精选
+    fetch(`./archive/${dateStr}-summary.json?t=${Date.now()}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(summary => {
+        summarySlot.innerHTML = '';
+        if (summary && summary.summary) summarySlot.appendChild(renderSummaryCard(summary));
+
+        // 构建 url → explanation 映射
+        const urlAnalysisMap = {};
+        if (summary && Array.isArray(summary.items_analysis)) {
+          summary.items_analysis.forEach(entry => {
+            if (entry.url && entry.explanation) urlAnalysisMap[entry.url] = entry.explanation;
+          });
+        }
+
+        const pickCount = renderBolePicks(items, generatedAt, boleList, urlAnalysisMap);
+        const hasAnalysis = Object.keys(urlAnalysisMap).length > 0;
+        boleMeta.textContent = `按时间倒序 · Top ${pickCount}${hasAnalysis ? ' · 含背景解读' : ''}`;
+      })
+      .catch(() => {
+        summarySlot.innerHTML = '';
+        const pickCount = renderBolePicks(items, generatedAt, boleList, {});
+        boleMeta.textContent = `按时间倒序 · Top ${pickCount}`;
+      });
 
     // 完整列表（折叠）
     const allSection = document.createElement('div'); allSection.className = 'archive-all-section';
