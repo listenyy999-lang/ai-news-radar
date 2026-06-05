@@ -53,5 +53,20 @@ jobs:
           fi
           DATE=$(python -c "from datetime import datetime,timezone,timedelta; print(datetime.now(timezone(timedelta(hours=8))).strftime('%Y-%m-%d'))")
           git commit -m "chore: ai morning brief ${DATE}"
-          git pull --rebase origin master
-          git push
+          # 生成期间远端可能被其它提交推进（如另一次运行），导致 JSON 冲突。
+          # 归档文件由本脚本独占生成，冲突时以本地新生成版本为准（-X theirs）。重试至多 5 次。
+          for i in 1 2 3 4 5; do
+            git fetch origin master
+            if git rebase -X theirs origin/master; then
+              if git push origin HEAD:master; then
+                echo "pushed on attempt $i"
+                exit 0
+              fi
+            else
+              git rebase --abort || true
+            fi
+            echo "push/rebase 冲突，重试 $i ..."
+            sleep $((RANDOM % 5 + 3))
+          done
+          echo "push failed after 5 retries"
+          exit 1
