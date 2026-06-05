@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="./assets/styles.css?v=bole-event-merge-0525" />
   <style>
     .archive-shell {
-      max-width: 860px;
+      max-width: 1200px;
       margin: 0 auto;
       padding: 2rem 1rem 4rem;
     }
@@ -137,6 +137,32 @@
     .empty-tip { color: var(--text-secondary, #888); font-size: 0.9375rem; padding: 2rem 0; text-align: center; }
     .loading-tip { color: var(--text-secondary, #888); font-size: 0.9375rem; }
 
+    /* ── 2列伯乐精选布局 ── */
+    .archive-bole-wrap .bole-compact-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      align-items: start;
+    }
+    @media (max-width: 780px) {
+      .archive-bole-wrap .bole-compact-list { grid-template-columns: 1fr; }
+    }
+
+    /* ── 一键开关按钮 ── */
+    .toggle-all-btn {
+      font-size: 0.8rem;
+      color: #1976d2;
+      background: none;
+      border: 1px solid #c8dff7;
+      border-radius: 12px;
+      padding: 0.2rem 0.7rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .toggle-all-btn:hover { background: #e8f0fe; }
+
     /* ── 背景解读展开区 ── */
     .bole-analysis-toggle {
       display: inline-flex; align-items: center; gap: 0.3rem;
@@ -151,11 +177,11 @@
     .bole-analysis-body {
       margin-top: 0.75rem;
       padding: 0.9rem 1rem;
-      background: var(--card-bg, #fff);
+      background: var(--card-bg, #fafcff);
       border-left: 3px solid #1976d2;
       border-radius: 0 6px 6px 0;
-      font-size: 0.9rem;
-      line-height: 1.8;
+      font-size: 0.875rem;
+      line-height: 1.85;
       color: var(--text, #222);
       white-space: pre-wrap;
     }
@@ -413,16 +439,18 @@
     const reason = document.createElement('div'); reason.className = 'bole-row-reason'; reason.textContent = boleReasonText(row);
     body.append(meta, titleLink, reason);
 
-    // 背景解读（如果有）
+    // 背景解读（如果有，默认展开）
     const analysis = urlAnalysisMap && item.url ? urlAnalysisMap[item.url] : null;
     if (analysis) {
       const toggle = document.createElement('button');
       toggle.className = 'bole-analysis-toggle';
-      toggle.innerHTML = '📖 背景解读 <span style="font-size:0.7rem">▶</span>';
+      toggle.dataset.analysisToggle = '1';
+      toggle.innerHTML = '📖 背景解读 <span style="font-size:0.7rem">▼</span>';
 
       const analysisBody = document.createElement('div');
       analysisBody.className = 'bole-analysis-body';
-      analysisBody.style.display = 'none';
+      analysisBody.dataset.analysisBody = '1';
+      analysisBody.style.display = 'block'; // 默认展开
       analysisBody.textContent = analysis;
 
       toggle.addEventListener('click', () => {
@@ -440,11 +468,12 @@
     return wrap;
   }
 
-  function renderBolePicks(items, generatedAt, container, urlAnalysisMap) {
+  function renderBolePicks(items, generatedAt, container, urlAnalysisMap, toggleAllBtn) {
     container.innerHTML = '';
     const picks = pickBoleItems(items, generatedAt);
     if (!picks.length) {
       container.innerHTML = '<div class="empty-tip">当天数据没有评分字段，无法生成伯乐精选。</div>';
+      if (toggleAllBtn) toggleAllBtn.style.display = 'none';
       return 0;
     }
     const timelinePicks = [...picks].sort((a, b) =>
@@ -452,6 +481,27 @@
     const list = document.createElement('div'); list.className = 'bole-compact-list';
     timelinePicks.forEach((row, i) => list.appendChild(buildBoleRow(row, i + 1, generatedAt, urlAnalysisMap)));
     container.appendChild(list);
+
+    // 一键开关逻辑
+    if (toggleAllBtn) {
+      const hasAny = Object.keys(urlAnalysisMap || {}).length > 0;
+      toggleAllBtn.style.display = hasAny ? '' : 'none';
+      let allOpen = true;
+      toggleAllBtn.textContent = '收起所有解读';
+      toggleAllBtn.onclick = () => {
+        allOpen = !allOpen;
+        container.querySelectorAll('[data-analysis-body]').forEach(el => {
+          el.style.display = allOpen ? 'block' : 'none';
+        });
+        container.querySelectorAll('[data-analysis-toggle]').forEach(el => {
+          el.innerHTML = allOpen
+            ? '📖 背景解读 <span style="font-size:0.7rem">▼</span>'
+            : '📖 背景解读 <span style="font-size:0.7rem">▶</span>';
+        });
+        toggleAllBtn.textContent = allOpen ? '收起所有解读' : '展开所有解读';
+      };
+    }
+
     return picks.length;
   }
 
@@ -524,10 +574,17 @@
     // 伯乐精选（先渲染占位，等 summary 加载后注入解读）
     const boleWrap = document.createElement('div'); boleWrap.className = 'archive-bole-wrap';
     const boleHead = document.createElement('div'); boleHead.className = 'archive-bole-head';
+    const boleTitleWrap = document.createElement('div');
+    boleTitleWrap.style.cssText = 'display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;';
     const boleTitle = document.createElement('h3'); boleTitle.innerHTML = '<span>BOLE PICKS</span> 伯乐精选';
+    const toggleAllBtn = document.createElement('button');
+    toggleAllBtn.className = 'toggle-all-btn';
+    toggleAllBtn.textContent = '收起所有解读';
+    toggleAllBtn.style.display = 'none'; // 等解读加载后再显示
+    boleTitleWrap.append(boleTitle, toggleAllBtn);
     const boleMeta = document.createElement('span'); boleMeta.className = 'archive-bole-meta';
     boleMeta.textContent = '加载中...';
-    boleHead.append(boleTitle, boleMeta);
+    boleHead.append(boleTitleWrap, boleMeta);
     const boleList = document.createElement('div'); boleList.className = 'bole-board';
     boleWrap.append(boleHead, boleList);
     contentEl.appendChild(boleWrap);
@@ -547,13 +604,13 @@
           });
         }
 
-        const pickCount = renderBolePicks(items, generatedAt, boleList, urlAnalysisMap);
+        const pickCount = renderBolePicks(items, generatedAt, boleList, urlAnalysisMap, toggleAllBtn);
         const hasAnalysis = Object.keys(urlAnalysisMap).length > 0;
         boleMeta.textContent = `按时间倒序 · Top ${pickCount}${hasAnalysis ? ' · 含背景解读' : ''}`;
       })
       .catch(() => {
         summarySlot.innerHTML = '';
-        const pickCount = renderBolePicks(items, generatedAt, boleList, {});
+        const pickCount = renderBolePicks(items, generatedAt, boleList, {}, toggleAllBtn);
         boleMeta.textContent = `按时间倒序 · Top ${pickCount}`;
       });
 
