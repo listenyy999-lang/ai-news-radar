@@ -141,68 +141,66 @@ def glm_request(prompt: str, api_key: str, max_tokens: int = 512) -> str | None:
 def call_glm_summary(items: list, date_str: str, api_key: str) -> str | None:
     top = get_top_items(items, 12)
     items_text = format_items_for_prompt(top)
-    prompt = f"""你是一位AI科技日报解读员。以下是{date_str}的AI领域重要更新精选，来自各大技术信源的高评分内容。
+    prompt = f"""你是一位资深AI科技媒体编辑，请根据以下{date_str}的精选内容，撰写一份今日AI动态速览，面向关注科技趋势的专业读者。
 
-请用简洁、通俗易懂的中文，为普通读者（非程序员）写一段今日AI动态摘要。要求：
-- 150-250字
-- 重点介绍最重要的2-4条更新及其对普通人的实际意义
-- 遇到专业术语请用括号简单解释
-- 语气轻松自然，像朋友分享今天的AI圈动态
-- 最后一句话概括今日整体趋势
+要求：
+- 300-400字，信息密度高
+- 覆盖当日3-5个重要事件，客观呈现其核心内容与实质影响
+- 专业术语保留，首次出现时括号简要解释
+- 语言简洁精炼，采用新闻写作风格，避免口语化或夸张表达
+- 结尾一句概括今日AI领域整体走向或值得关注的信号
 
 今日精选内容：
 {items_text}
 
-请直接输出摘要正文，不需要标题和开场白。"""
-    return glm_request(prompt, api_key, max_tokens=512)
+请直接输出速览正文，无需标题。"""
+    return glm_request(prompt, api_key, max_tokens=800)
 
 
 # ── 调用2：逐条背景解读（每条单独调用，确保内容完整）──────────────
 
 def call_glm_single_item(item: dict, date_str: str, api_key: str) -> str | None:
-    """为单条新闻生成 500 字左右解读，直接返回文本。"""
+    """为单条新闻生成 500 字左右专业分析，直接返回文本。"""
     title = (item.get("title_zh") or item.get("title") or item.get("title_en") or "").strip()
     if not title:
         return None
     label = LABEL_MAP.get(item.get("ai_label", ""), item.get("ai_label") or "AI信号")
     site = item.get("site_name") or ""
 
-    prompt = f"""你是一位AI科技记者，请为以下{date_str}的新闻写一段500字左右的中文背景解读，帮助完全不懂技术的普通读者理解。
+    prompt = f"""你是一位资深AI科技记者，请对以下{date_str}的新闻进行专业分析报道，约500字。
 
 新闻：【{label}】{title}（来源：{site}）
 
-解读需要包含：
-① 背景介绍：这是什么公司/技术/事件？（1-2句）
-② 来龙去脉：发生了什么？为什么会发生？（主要内容）
-③ 意义影响：为什么值得关注？对普通人有什么影响？
+分析报道应包含：
+① 背景：该公司、技术或事件的基本情况与行业地位
+② 事件详情：本次发布/发生了什么，核心要点是什么
+③ 深度分析：技术层面、商业层面或行业层面的实质意义，潜在影响与趋势
 
 要求：
-- 字数 500 字左右，不得少于 400 字
-- 遇到专业术语请用括号简单解释，例如"大语言模型（能理解和生成文字的 AI）"
-- 语气通俗自然，像给朋友讲述一条新闻
-- 直接输出解读正文，不要加"解读："等任何前缀或标题"""
+- 字数500字左右，不少于400字
+- 采用专业新闻报道风格，语言简洁客观，信息密度高
+- 专业术语保留，首次出现时括号简要解释
+- 不得使用口语化或夸张表达
+- 直接输出分析正文，不要添加标题或任何前缀"""
 
     return glm_request(prompt, api_key, max_tokens=900)
 
 
-def call_glm_items_analysis(items: list, date_str: str, api_key: str) -> list:
-    """对 top 8 条精选逐条单独调用 GLM，返回 [{url, title, explanation}]。"""
+def call_glm_items_analysis(items: list, date_str: str, api_key: str) -> int:
+    """对 top 8 条精选逐条单独调用 GLM，将解读直接写入 item['analysis']，返回成功条数。"""
     top = get_top_items(items, 8)
-    result = []
+    success = 0
     for i, item in enumerate(top, 1):
-        short_title = (item.get("title_zh") or item.get("title") or "")[:25]
+        short_title = (item.get("title_zh") or item.get("title") or "")[:30]
         print(f"[archive]   [{i}/{len(top)}] {short_title}...")
         explanation = call_glm_single_item(item, date_str, api_key)
         if explanation:
-            result.append({
-                "url": item.get("url", ""),
-                "title": (item.get("title_zh") or item.get("title") or "").strip(),
-                "explanation": explanation,
-            })
+            item["analysis"] = explanation  # 直接嵌入 item，前端可直接读取
+            success += 1
         else:
             print(f"[archive]   [{i}/{len(top)}] 解读生成失败，跳过")
-    print(f"[archive] 逐条解读完成：{len(result)}/{len(top)} 条")
-    return result
+    print(f"[archive] 逐条解读完成：{success}/{len(top)} 条")
+    return success
 
 
 # ── 主流程 ───────────────────────────────────────────────────────
@@ -249,23 +247,25 @@ def main():
         print(f"[archive] 调用 GLM 生成今日摘要...")
         summary_text = call_glm_summary(items_ai, date_str, glm_api_key)
 
-        # 调用2：逐条背景解读
-        print(f"[archive] 调用 GLM 生成逐条解读（约500字×8条）...")
-        items_analysis = call_glm_items_analysis(items_ai, date_str, glm_api_key)
+        # 调用2：逐条深度解析（直接嵌入 items_ai 中的对应 item）
+        print(f"[archive] 调用 GLM 生成逐条深度解析（约500字×8条）...")
+        analysis_count = call_glm_items_analysis(items_ai, date_str, glm_api_key)
 
-        if summary_text or items_analysis:
+        # 解读已嵌入 items_ai，重新保存快照（含 analysis 字段）
+        write_json(snapshot_path, snapshot)
+
+        if summary_text or analysis_count > 0:
             summary = {
                 "date": date_str,
                 "generated_at": datetime.now(timezone.utc).isoformat(),
                 "model": "glm-4-flash",
                 "summary": summary_text or "",
                 "item_count": min(len(items_ai), 12),
-                "items_analysis": items_analysis,  # [{url, title, explanation}]
             }
             summary_path = os.path.join(args.archive_dir, f"{date_str}-summary.json")
             write_json(summary_path, summary)
             has_summary = True
-            print(f"[archive] 摘要完成，逐条解读 {len(items_analysis)} 条")
+            print(f"[archive] 完成：摘要 + 逐条解析 {analysis_count} 条（已嵌入快照）")
         else:
             print("[archive] GLM 全部失败，跳过（不影响快照归档）")
     else:
