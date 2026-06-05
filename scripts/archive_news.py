@@ -352,19 +352,21 @@ def glm_request(prompt: str, api_key: str, max_tokens: int = 512) -> str | None:
 
 # ── 调用1：今日整体摘要 ──────────────────────────────────────────
 
-def call_glm_summary(items: list, date_str: str, api_key: str) -> str | None:
-    top = get_top_items(items, 12)
+def call_glm_summary(items: list, date_str: str, api_key: str, generated_at: str = "") -> str | None:
+    # 与伯乐精选同源：要点和精选指向同一批文章，保证内容一致。
+    picks = pick_bole_items(items, generated_at)
+    top = [p["item"] for p in picks] or get_top_items(items, 8)
     items_text = format_items_for_prompt(top)
-    prompt = f"""你是一位资深AI科技媒体编辑，请根据以下{date_str}的精选内容，撰写一份今日AI动态速览，面向关注科技趋势的专业读者。
+    prompt = f"""你是一位资深AI科技媒体编辑，请根据以下精选内容（覆盖最近24小时），撰写一份AI动态速览，面向关注科技趋势的专业读者。
 
 要求：
 - 300-400字，信息密度高
-- 覆盖当日3-5个重要事件，客观呈现其核心内容与实质影响
+- 覆盖其中3-5个最重要的事件，客观呈现其核心内容与实质影响
 - 专业术语保留，首次出现时括号简要解释
 - 语言简洁精炼，采用新闻写作风格，避免口语化或夸张表达
-- 结尾一句概括今日AI领域整体走向或值得关注的信号
+- 结尾一句概括近期AI领域整体走向或值得关注的信号
 
-今日精选内容：
+最近24小时伯乐精选内容：
 {items_text}
 
 请直接输出速览正文，无需标题。"""
@@ -433,6 +435,8 @@ def main():
     parser.add_argument("--data-dir", default="data")
     parser.add_argument("--archive-dir", default="archive")
     parser.add_argument("--date", default=None, help="覆盖日期 YYYY-MM-DD（默认今天 CST）")
+    parser.add_argument("--force", action="store_true",
+                        help="强制重新生成：即使当天已归档且含解读，也覆盖重算（手动触发时勾选 force）")
     args = parser.parse_args()
 
     date_str = args.date or today_cst()
@@ -451,6 +455,31 @@ def main():
     # 与 archive.html 一致：generatedAt = snapshot.generated_at || snapshot.archived_at
     generated_at_src = payload.get("generated_at") or archived_at
 
+    snapshot_path = os.path.join(args.archive_dir, f"{date_str}.json")
+    summary_path = os.path.join(args.archive_dir, f"{date_str}-summary.json")
+
+    # ── 防重跑保护 ───────────────────────────────────────────────
+    # 若当天已归档且快照里已含解读（analysis），默认跳过，避免之后手动 / 重复
+    # 运行用更晚的数据覆盖掉“08:00 历史归档”，并白白消耗 GLM 额度。
+    # 需要重做今天这份时用 --force（工作流手动触发时勾选 force）。
+    if not args.force and os.path.exists(snapshot_path):
+        try:
+            existing = load_json(snapshot_path)
+            if any(it.get("analysis") for it in (existing.get("items_ai") or [])):
+                print(f"[archive] {date_str} 已归档且含解读，跳过（如需重做请用 --force）")
+                update_index(
+                    archive_dir=args.archive_dir,
+                    date_str=date_str,
+                    meta={
+                        "total_ai": existing.get("total_ai", total_ai),
+                        "archived_at": existing.get("archived_at", archived_at),
+                        "has_summary": os.path.exists(summary_path),
+                    },
+                )
+                return
+        except Exception as e:
+            print(f"[archive] 读取既有快照失败，按正常流程重建：{e}", file=sys.stderr)
+
     # 保存当天快照
     snapshot = {
         "archive_date": date_str,
@@ -460,7 +489,6 @@ def main():
         "items_ai": items_ai,
         "site_stats": payload.get("site_stats") or [],
     }
-    snapshot_path = os.path.join(args.archive_dir, f"{date_str}.json")
     write_json(snapshot_path, snapshot)
 
     # GLM 生成摘要 + 逐条解读
@@ -468,9 +496,10 @@ def main():
     has_summary = False
 
     if glm_api_key and items_ai:
-        # 调用1：整体摘要
-        print(f"[archive] 调用 GLM 生成今日摘要...")
-        summary_text = call_glm_summary(items_ai, date_str, glm_api_key)
+        # 调用1：晨报要点（与伯乐精选同源，覆盖近24小时）
+        print(f"[archive] 调用 GLM 生成晨报要点（近24小时，基于伯乐精选）...")
+        summary_text = call_glm_summary(items_ai, date_str, glm_api_key, generated_at_src)
+        summary_item_count = len(pick_bole_items(items_ai, generated_at_src))
 
         # 调用2：逐条深度解析（直接嵌入 items_ai 中的对应 primary item）
         print(f"[archive] 调用 GLM 生成逐条深度解析（前端伯乐精选 Top 8）...")
@@ -485,9 +514,8 @@ def main():
                 "generated_at": datetime.now(timezone.utc).isoformat(),
                 "model": "glm-4-flash",
                 "summary": summary_text or "",
-                "item_count": min(len(items_ai), 12),
+                "item_count": summary_item_count or min(len(items_ai), 8),
             }
-            summary_path = os.path.join(args.archive_dir, f"{date_str}-summary.json")
             write_json(summary_path, summary)
             has_summary = True
             print(f"[archive] 完成：摘要 + 逐条解析 {analysis_count} 条（已嵌入快照）")
