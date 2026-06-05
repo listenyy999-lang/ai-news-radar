@@ -1,23 +1,26 @@
 #!/usr/bin/env python3
 """
 archive_news.py — 每天把当天的 AI 精选快照存成带日期的 JSON 文件，
-并调用 GLM API 生成中文摘要（需设置环境变量 GLM_API_KEY）。
+并调用 GLM API 生成：
+  1. 今日整体摘要（今日要点）
+  2. 每条伯乐精选约 500 字背景解读
 
 用法:
   python scripts/archive_news.py --data-dir data --archive-dir archive
 
 读取:
-  data/latest-24h.json         → AI 强相关精选
+  data/latest-24h.json              → AI 强相关精选
 
 写入:
-  archive/YYYY-MM-DD.json          → 当天快照
-  archive/YYYY-MM-DD-summary.json  → GLM 中文摘要（如有 API Key）
-  archive/index.json               → 日期索引
+  archive/YYYY-MM-DD.json           → 当天快照
+  archive/YYYY-MM-DD-summary.json   → 整体摘要 + 逐条解读
+  archive/index.json                → 日期索引
 """
 
 import argparse
 import json
 import os
+import re
 import sys
 import urllib.request
 import urllib.error
@@ -75,34 +78,70 @@ def update_index(archive_dir: str, date_str: str, meta: dict) -> None:
     write_json(index_path, index)
 
 
-def build_prompt(items: list, date_str: str) -> str:
-    """构建发送给 GLM 的提示词。"""
-    scored = sorted(
+# ── 辅助：格式化 top N 条目 ──────────────────────────────────────
+
+def get_top_items(items: list, n: int = 8) -> list:
+    return sorted(
         items,
         key=lambda x: float(x.get("ai_score") or x.get("score") or 0),
         reverse=True,
-    )
-    top = scored[:12]
+    )[:n]
 
+
+def format_items_for_prompt(top: list) -> str:
     lines = []
     for i, item in enumerate(top, 1):
-        title = (
-            item.get("title_zh") or item.get("title") or item.get("title_en") or ""
-        ).strip()
+        title = (item.get("title_zh") or item.get("title") or item.get("title_en") or "").strip()
         label = LABEL_MAP.get(item.get("ai_label", ""), item.get("ai_label") or "AI信号")
         site = item.get("site_name") or ""
         score = int(float(item.get("ai_score") or item.get("score") or 0))
         signals = "、".join((item.get("ai_signals") or [])[:3])
-
         line = f"{i}. 【{label}】{title}（来源：{site}，评分{score}"
         if signals:
             line += f"，关键词：{signals}"
         line += "）"
         lines.append(line)
+    return "\n".join(lines)
 
-    items_text = "\n".join(lines)
 
-    return f"""你是一位AI科技日报解读员。以下是{date_str}的AI领域重要更新精选，来自各大技术信源的高评分内容。
+# ── GLM 通用请求 ─────────────────────────────────────────────────
+
+def glm_request(prompt: str, api_key: str, max_tokens: int = 512) -> str | None:
+    payload = {
+        "model": "glm-4-flash",
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": max_tokens,
+        "temperature": 0.7,
+    }
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+        data=data,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+            return result["choices"][0]["message"]["content"].strip()
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")
+        print(f"[archive] WARNING: GLM HTTP {e.code}: {body[:300]}", file=sys.stderr)
+        return None
+    except Exception as e:
+        print(f"[archive] WARNING: GLM 调用失败: {e}", file=sys.stderr)
+        return None
+
+
+# ── 调用1：今日整体摘要 ──────────────────────────────────────────
+
+def call_glm_summary(items: list, date_str: str, api_key: str) -> str | None:
+    top = get_top_items(items, 12)
+    items_text = format_items_for_prompt(top)
+    prompt = f"""你是一位AI科技日报解读员。以下是{date_str}的AI领域重要更新精选，来自各大技术信源的高评分内容。
 
 请用简洁、通俗易懂的中文，为普通读者（非程序员）写一段今日AI动态摘要。要求：
 - 150-250字
@@ -115,46 +154,76 @@ def build_prompt(items: list, date_str: str) -> str:
 {items_text}
 
 请直接输出摘要正文，不需要标题和开场白。"""
+    return glm_request(prompt, api_key, max_tokens=512)
 
 
-def call_glm(items: list, date_str: str, api_key: str) -> str | None:
-    """调用 GLM API 生成中文摘要，失败返回 None（不影响归档流程）。"""
-    prompt = build_prompt(items, date_str)
+# ── 调用2：逐条背景解读 ──────────────────────────────────────────
 
-    payload = {
-        "model": "glm-4-flash",
-        "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 512,
-        "temperature": 0.7,
-    }
+def build_items_analysis_prompt(top: list, date_str: str) -> str:
+    n = len(top)
+    items_text = format_items_for_prompt(top)
 
-    data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(
-        "https://open.bigmodel.cn/api/paas/v4/chat/completions",
-        data=data,
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}",
-        },
-        method="POST",
-    )
+    sep_example = "\n".join([f"===={i}====\n（第{i}条解读）" for i in range(1, min(3, n+1))])
 
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            result = json.loads(resp.read().decode("utf-8"))
-            text = result["choices"][0]["message"]["content"].strip()
-            return text
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8", errors="replace")
-        print(f"[archive] WARNING: GLM HTTP {e.code}: {body[:200]}", file=sys.stderr)
-        return None
-    except Exception as e:
-        print(f"[archive] WARNING: GLM 调用失败: {e}", file=sys.stderr)
-        return None
+    return f"""你是一位AI科技记者。以下是{date_str}的AI精选新闻共{n}条，请为每条写一段约500字的中文背景解读，帮助完全不懂技术的普通读者理解这件事的来龙去脉和实际意义。
 
+每条解读要包含：
+1. 这是什么事/什么公司/什么技术（背景介绍）
+2. 事件的来龙去脉（发生了什么）
+3. 为什么值得关注（对普通人有什么影响或意义）
+- 遇到专业术语请用括号解释
+- 语气通俗，像给朋友讲故事
+
+输出格式（严格使用====数字====作为分隔符，数字从1开始）：
+{sep_example}
+...
+
+新闻列表：
+{items_text}
+
+请直接开始输出，从====1====起。"""
+
+
+def parse_items_analysis(text: str, top_items: list) -> list:
+    """解析 ====N==== 格式的分隔文本，匹配到对应 item 的 url。"""
+    parts = re.split(r'====\s*(\d+)\s*====', text)
+    # parts: ['前缀', '1', '内容1', '2', '内容2', ...]
+    result = []
+    for i in range(1, len(parts) - 1, 2):
+        try:
+            idx = int(parts[i]) - 1  # 转 0-based
+            explanation = parts[i + 1].strip()
+            if 0 <= idx < len(top_items) and explanation:
+                item = top_items[idx]
+                result.append({
+                    "url": item.get("url", ""),
+                    "title": (item.get("title_zh") or item.get("title") or "").strip(),
+                    "explanation": explanation,
+                })
+        except (ValueError, IndexError):
+            continue
+    return result
+
+
+def call_glm_items_analysis(items: list, date_str: str, api_key: str) -> list:
+    """为 top 8 条精选生成逐条约500字解读，返回 [{url, title, explanation}]。"""
+    top = get_top_items(items, 8)
+    if not top:
+        return []
+    prompt = build_items_analysis_prompt(top, date_str)
+    # 8条 × 500字 ≈ 4000字，约 2500 tokens 输出
+    text = glm_request(prompt, api_key, max_tokens=4096)
+    if not text:
+        return []
+    parsed = parse_items_analysis(text, top)
+    print(f"[archive] 逐条解读：解析到 {len(parsed)}/{len(top)} 条")
+    return parsed
+
+
+# ── 主流程 ───────────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(description="归档当天 AI 精选快照并生成 GLM 摘要")
+    parser = argparse.ArgumentParser(description="归档当天 AI 精选快照并生成 GLM 摘要与解读")
     parser.add_argument("--data-dir", default="data")
     parser.add_argument("--archive-dir", default="archive")
     parser.add_argument("--date", default=None, help="覆盖日期 YYYY-MM-DD（默认今天 CST）")
@@ -186,39 +255,44 @@ def main():
     snapshot_path = os.path.join(args.archive_dir, f"{date_str}.json")
     write_json(snapshot_path, snapshot)
 
-    # 生成 GLM 中文摘要（可选）
+    # GLM 生成摘要 + 逐条解读
     glm_api_key = os.environ.get("GLM_API_KEY", "").strip()
     has_summary = False
 
     if glm_api_key and items_ai:
-        print(f"[archive] 正在调用 GLM API 生成 {date_str} 摘要...")
-        summary_text = call_glm(items_ai, date_str, glm_api_key)
-        if summary_text:
+        # 调用1：整体摘要
+        print(f"[archive] 调用 GLM 生成今日摘要...")
+        summary_text = call_glm_summary(items_ai, date_str, glm_api_key)
+
+        # 调用2：逐条背景解读
+        print(f"[archive] 调用 GLM 生成逐条解读（约500字×8条）...")
+        items_analysis = call_glm_items_analysis(items_ai, date_str, glm_api_key)
+
+        if summary_text or items_analysis:
             summary = {
                 "date": date_str,
                 "generated_at": datetime.now(timezone.utc).isoformat(),
                 "model": "glm-4-flash",
-                "summary": summary_text,
+                "summary": summary_text or "",
                 "item_count": min(len(items_ai), 12),
+                "items_analysis": items_analysis,  # [{url, title, explanation}]
             }
             summary_path = os.path.join(args.archive_dir, f"{date_str}-summary.json")
             write_json(summary_path, summary)
             has_summary = True
-            print(f"[archive] 摘要生成完成（{len(summary_text)} 字）")
+            print(f"[archive] 摘要完成，逐条解读 {len(items_analysis)} 条")
         else:
-            print("[archive] GLM 摘要生成失败，跳过（不影响快照归档）")
+            print("[archive] GLM 全部失败，跳过（不影响快照归档）")
     else:
         if not glm_api_key:
-            print("[archive] 未设置 GLM_API_KEY，跳过摘要生成")
+            print("[archive] 未设置 GLM_API_KEY，跳过摘要与解读生成")
 
-    # 更新索引
     update_index(
         archive_dir=args.archive_dir,
         date_str=date_str,
         meta={"total_ai": total_ai, "archived_at": archived_at, "has_summary": has_summary},
     )
-
-    print(f"[archive] Done: {date_str} → {snapshot_path}（{total_ai} 条 AI 精选）")
+    print(f"[archive] Done: {date_str}（{total_ai} 条 AI 精选）")
 
 
 if __name__ == "__main__":
