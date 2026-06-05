@@ -18412,5 +18412,19 @@
   "Migrating a Zola blog from Markdown to Org-mode": "将 Zola 博客从 Markdown 迁移到 Org 模式",
   "Common Lisp bindings for brotli compression": "用于 brotli 压缩的 Common Lisp 绑定",
   "Machine learning using Clojure, libpython-clj2, and PyTorch": "使用 Clojure、libpython-clj2 和 PyTorch 进行机器学习",
-  "Emacs with a native Metal rendering back end (macOS)": "具有原生 Metal 渲染后端的 Emacs (macOS)"
+  "Emacs with a native Metal rendering back end (macOS)": "具有原生 Metal 渲染后端的 Emacs (macOS)",
+  "Fine-tuning an LLM to write docs like it's 1995": "微调 LLM 以像 1995 年一样编写文档",
+  "The Pentagon is running an AI propaganda mill targeting Latin America": "五角大楼正在运营一个针对拉丁美洲的人工智能宣传工厂",
+  "Dear Microsoft, enough is enough": "亲爱的微软，够了",
+  "C++: The Documentary Released Today": "C++：今天发布的纪录片",
+  "Magenta RealTime 2: Open and Local Live Music Models": "Magenta RealTime 2：开放和本地现场音乐模型",
+  "Meta Silently Added Face-Recognition for Its Smart Glasses to Phones": "Meta 悄悄为其智能眼镜添加了人脸识别功能",
+  "SpaceX: Flying High on Impunity": "SpaceX：逍遥法外",
+  "Azure Linux 4.0 is Microsoft's first general-purpose Linux": "Azure Linux 4.0是微软第一个通用Linux",
+  "The Causes of Long Covid": "长期新冠疫情的原因",
+  "Analysis: Meta discreetly added code for an unreleased \"NameTag\" face-recognition system for its AI glasses over multiple updates to the Meta AI app this year (Wired)": "分析：Meta 今年在 Meta AI 应用程序的多次更新中谨慎地为其 AI 眼镜添加了未发布的“NameTag”人脸识别系统的代码（连线）",
+  "CEO to staff: You're not getting a raise. We're spending on AI instead": "首席执行官对员工：你们没有加薪。我们把钱花在人工智能上",
+  "What happens if Japan takes in zero immigrants?": "如果日本零移民的话会发生什么？",
+  "Latent Agents: A Post-Training Procedure for Internalized Multi-Agent Debate": "潜在代理：内部化多代理辩论的后训练程序",
+  "Fidelity lowers SpaceX IPO entry requirement from $500,000 to just $2,000": "富达将 SpaceX IPO 的门槛从 50 万美元降低至 2,000 美元"
 }
