@@ -3,8 +3,8 @@ name: Archive Daily AI News
 on:
   workflow_dispatch:
   schedule:
-    # 每天 23:30 CST（UTC+8）= 15:30 UTC
-    - cron: "30 15 * * *"
+    # 每天 08:00 CST（UTC+8）= 00:00 UTC
+    - cron: "0 0 * * *"
 
 concurrency:
   group: archive-ai-news-${{ github.ref }}
@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   archive:
-    timeout-minutes: 5
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -27,6 +27,8 @@ jobs:
           python-version: "3.11"
 
       - name: Run archive script
+        env:
+          GLM_API_KEY: ${{ secrets.GLM_API_KEY }}
         run: python scripts/archive_news.py --data-dir data --archive-dir archive
 
       - name: Commit and push
@@ -39,6 +41,6 @@ jobs:
             exit 0
           fi
           DATE=$(python -c "from datetime import datetime,timezone,timedelta; print(datetime.now(timezone(timedelta(hours=8))).strftime('%Y-%m-%d'))")
-          git commit -m "chore: archive daily ai news ${DATE}"
+          git commit -m "chore: ai morning brief ${DATE}"
           git pull --rebase origin master
           git push
