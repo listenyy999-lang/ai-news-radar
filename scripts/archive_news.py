@@ -157,67 +157,52 @@ def call_glm_summary(items: list, date_str: str, api_key: str) -> str | None:
     return glm_request(prompt, api_key, max_tokens=512)
 
 
-# ── 调用2：逐条背景解读 ──────────────────────────────────────────
+# ── 调用2：逐条背景解读（每条单独调用，确保内容完整）──────────────
 
-def build_items_analysis_prompt(top: list, date_str: str) -> str:
-    n = len(top)
-    items_text = format_items_for_prompt(top)
+def call_glm_single_item(item: dict, date_str: str, api_key: str) -> str | None:
+    """为单条新闻生成 500 字左右解读，直接返回文本。"""
+    title = (item.get("title_zh") or item.get("title") or item.get("title_en") or "").strip()
+    if not title:
+        return None
+    label = LABEL_MAP.get(item.get("ai_label", ""), item.get("ai_label") or "AI信号")
+    site = item.get("site_name") or ""
 
-    sep_example = "\n".join([f"===={i}====\n（第{i}条解读）" for i in range(1, min(3, n+1))])
+    prompt = f"""你是一位AI科技记者，请为以下{date_str}的新闻写一段500字左右的中文背景解读，帮助完全不懂技术的普通读者理解。
 
-    return f"""你是一位AI科技记者。以下是{date_str}的AI精选新闻共{n}条，请为每条写一段约500字的中文背景解读，帮助完全不懂技术的普通读者理解这件事的来龙去脉和实际意义。
+新闻：【{label}】{title}（来源：{site}）
 
-每条解读要包含：
-1. 这是什么事/什么公司/什么技术（背景介绍）
-2. 事件的来龙去脉（发生了什么）
-3. 为什么值得关注（对普通人有什么影响或意义）
-- 遇到专业术语请用括号解释
-- 语气通俗，像给朋友讲故事
+解读需要包含：
+① 背景介绍：这是什么公司/技术/事件？（1-2句）
+② 来龙去脉：发生了什么？为什么会发生？（主要内容）
+③ 意义影响：为什么值得关注？对普通人有什么影响？
 
-输出格式（严格使用====数字====作为分隔符，数字从1开始）：
-{sep_example}
-...
+要求：
+- 字数 500 字左右，不得少于 400 字
+- 遇到专业术语请用括号简单解释，例如"大语言模型（能理解和生成文字的 AI）"
+- 语气通俗自然，像给朋友讲述一条新闻
+- 直接输出解读正文，不要加"解读："等任何前缀或标题"""
 
-新闻列表：
-{items_text}
-
-请直接开始输出，从====1====起。"""
-
-
-def parse_items_analysis(text: str, top_items: list) -> list:
-    """解析 ====N==== 格式的分隔文本，匹配到对应 item 的 url。"""
-    parts = re.split(r'====\s*(\d+)\s*====', text)
-    # parts: ['前缀', '1', '内容1', '2', '内容2', ...]
-    result = []
-    for i in range(1, len(parts) - 1, 2):
-        try:
-            idx = int(parts[i]) - 1  # 转 0-based
-            explanation = parts[i + 1].strip()
-            if 0 <= idx < len(top_items) and explanation:
-                item = top_items[idx]
-                result.append({
-                    "url": item.get("url", ""),
-                    "title": (item.get("title_zh") or item.get("title") or "").strip(),
-                    "explanation": explanation,
-                })
-        except (ValueError, IndexError):
-            continue
-    return result
+    return glm_request(prompt, api_key, max_tokens=900)
 
 
 def call_glm_items_analysis(items: list, date_str: str, api_key: str) -> list:
-    """为 top 8 条精选生成逐条约500字解读，返回 [{url, title, explanation}]。"""
+    """对 top 8 条精选逐条单独调用 GLM，返回 [{url, title, explanation}]。"""
     top = get_top_items(items, 8)
-    if not top:
-        return []
-    prompt = build_items_analysis_prompt(top, date_str)
-    # 8条 × 500字 ≈ 4000字，约 2500 tokens 输出
-    text = glm_request(prompt, api_key, max_tokens=4096)
-    if not text:
-        return []
-    parsed = parse_items_analysis(text, top)
-    print(f"[archive] 逐条解读：解析到 {len(parsed)}/{len(top)} 条")
-    return parsed
+    result = []
+    for i, item in enumerate(top, 1):
+        short_title = (item.get("title_zh") or item.get("title") or "")[:25]
+        print(f"[archive]   [{i}/{len(top)}] {short_title}...")
+        explanation = call_glm_single_item(item, date_str, api_key)
+        if explanation:
+            result.append({
+                "url": item.get("url", ""),
+                "title": (item.get("title_zh") or item.get("title") or "").strip(),
+                "explanation": explanation,
+            })
+        else:
+            print(f"[archive]   [{i}/{len(top)}] 解读生成失败，跳过")
+    print(f"[archive] 逐条解读完成：{len(result)}/{len(top)} 条")
+    return result
 
 
 # ── 主流程 ───────────────────────────────────────────────────────
