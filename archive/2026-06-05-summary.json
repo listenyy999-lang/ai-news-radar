@@ -1,7 +1,7 @@
 {
   "date": "2026-06-05",
-  "generated_at": "2026-06-05T12:27:35.049120+00:00",
+  "generated_at": "2026-06-05T12:53:00.486782+00:00",
   "model": "glm-4.5-air",
-  "summary": "· OpenAI 升级 ChatGPT �",
+  "summary": "· Open Code Review 发布基于AI的代码审查命令行工具，提升开发者代码审查效率  \n· 华为推出KVarN键值缓存量化的原生LLM后端，优化大规模语言模型性能  \n· Anthropic联合创始人透露因AI模型开发成本高昂，公司计划寻求上市  \n· 加拿大推出国家AI战略，通过入股扶持本土AI企业发展  \n· Ideagram4.0开源发布，93亿参数模型在DesignArena全球排名第四  \n· OpenAI升级ChatGPT记忆系统，算力需求降至1/5，解决过时与错误问题  \n· Anthropic开源AI驱动漏洞发现框架，增强企业代码安全性检测",
   "item_count": 8
 }
