@@ -2,6 +2,11 @@ name: Archive Daily AI News
 
 on:
   workflow_dispatch:
+    inputs:
+      force:
+        description: "强制重新生成当天归档（覆盖已有快照与解读、重新消耗 GLM）"
+        type: boolean
+        default: false
   schedule:
     # 每天 08:00 CST（UTC+8）= 00:00 UTC
     - cron: "0 0 * * *"
@@ -29,7 +34,13 @@ jobs:
       - name: Run archive script
         env:
           GLM_API_KEY: ${{ secrets.GLM_API_KEY }}
-        run: python scripts/archive_news.py --data-dir data --archive-dir archive
+        run: |
+          FORCE=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force }}" = "true" ]; then
+            FORCE="--force"
+            echo "手动触发并勾选 force：强制重新生成当天归档"
+          fi
+          python scripts/archive_news.py --data-dir data --archive-dir archive $FORCE
 
       - name: Commit and push
         run: |
