@@ -359,33 +359,56 @@ def glm_request(prompt: str, api_key: str, max_tokens: int = 512) -> str | None:
         return None
 
 
-# ── 调用1：今日整体摘要 ──────────────────────────────────────────
+# ── 调用1：今日整体摘要（晨报要点，与伯乐精选同源同序，逐条生成）──────
+#
+# 历史问题：原先把 Top 8 一次性交给 GLM，让它“挑最重要的 5–8 条”，模型会
+# 自行合并、丢条、改顺序，导致页面「晨报要点」与「伯乐精选」数目对不上、
+# 顺序也无法一一对应（常见 5 条要点 vs 8 条精选）。
+# 现改为按 pick_bole_items() 的同一顺序逐条生成，每条一行，从结构上保证：
+#   要点数 == 伯乐精选数，且第 i 行严格对应第 i 条精选。
+
+def call_glm_summary_line(item: dict, api_key: str) -> str | None:
+    """为单条新闻生成一行 40–70 字的晨报要点（不含「· 」前缀），失败返回 None。"""
+    title = (item.get("title_zh") or item.get("title") or item.get("title_en") or "").strip()
+    if not title:
+        return None
+    label = LABEL_MAP.get(item.get("ai_label", ""), item.get("ai_label") or "AI信号")
+    site = item.get("site_name") or ""
+    prompt = f"""你是一家国际科技媒体（参照 The Information、Bloomberg、Reuters 科技线）的编辑。请把下面这一条新闻浓缩成「一行」要点，供专业读者快速扫读。
+
+新闻：【{label}】{title}（来源：{site}）
+
+硬性要求（务必遵守）：
+- 只输出一行，40–70 字，结构为：主体 + 做了什么 + 一句事实性影响
+- 中立克制、就事论事，像通讯社快讯；用具体事实和数字说话，不确定的不编造
+- 禁用营销夸张词：重磅、强势、赋能、打造、引领、里程碑、震撼、密集、生态、布局等一律不用
+- 专业术语首次出现时用括号给一句中文解释
+- 直接输出这一行正文：不要编号、不要「· 」前缀、不要引号、不要换行、不要结尾升华或喊口号"""
+    raw = glm_request(prompt, api_key, max_tokens=200)
+    if not raw:
+        return None
+    # 防御：模型偶尔多输出几行，或自带「· 」/编号前缀，这里只取首个非空行并清掉前缀。
+    first = next((ln.strip() for ln in raw.splitlines() if ln.strip()), "")
+    first = re.sub(r"^[·•\-\—\d\.\、\)\s]+", "", first).strip()
+    return first or None
+
 
 def call_glm_summary(items: list, date_str: str, api_key: str, generated_at: str = "") -> str | None:
-    # 与伯乐精选同源：要点和精选指向同一批文章，保证内容一致。
+    # 与伯乐精选同源、同序：逐条生成要点，保证「要点」与「伯乐精选」数目一致、顺序一一对应。
     picks = pick_bole_items(items, generated_at)
     top = [p["item"] for p in picks] or get_top_items(items, 8)
-    items_text = format_items_for_prompt(top)
-    prompt = f"""你是一家国际科技媒体（参照 The Information、Bloomberg、Reuters 科技线）的编辑。请基于以下最近 24 小时的精选新闻，逐条写出要点，供专业读者快速扫读。
-
-输出格式（严格遵守）：
-- 每条新闻独立成一行，以「· 」开头，条与条之间换行，不要合并成一段
-- 每行结构：主体 + 做了什么 + 一句事实性影响，控制在 40–70 字
-- 只覆盖其中最重要的 5–8 条；信息量不足的可略过
-- 不写开场白、不写结尾总结，禁止「今日AI领域整体走向」这类宏大概括
-
-文风要求：
-- 中立、克制、就事论事，像通讯社快讯，不是宣传稿
-- 禁用营销与夸张词：重磅、强势、赋能、打造、引领、里程碑、震撼、密集、生态、布局等一律不用
-- 用具体事实和数字说话，能量化就量化；不确定的不编造
-- 专业术语保留，首次出现时用括号给一句中文解释
-- 不渲染情绪、不下价值判断、不喊口号
-
-最近 24 小时精选新闻：
-{items_text}
-
-直接输出各条要点，每条一行，无需标题与编号。"""
-    return glm_request(prompt, api_key, max_tokens=1200)
+    if not top:
+        return None
+    lines = []
+    for i, item in enumerate(top, 1):
+        short_title = (item.get("title_zh") or item.get("title") or "")[:30]
+        print(f"[archive]   要点 [{i}/{len(top)}] {short_title}...")
+        point = call_glm_summary_line(item, api_key)
+        if not point:
+            # 兜底：GLM 失败时用标题占位，确保条目数与顺序不缺位（仍与精选一一对应）。
+            point = (item.get("title_zh") or item.get("title") or item.get("title_en") or "").strip()
+        lines.append(f"· {point}")
+    return "\n".join(lines) if lines else None
 
 
 # ── 调用2：逐条背景解读（每条单独调用，确保内容完整）──────────────
