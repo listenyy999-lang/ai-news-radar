@@ -521,9 +521,9 @@
     card.className = 'summary-card';
 
     const head = document.createElement('div'); head.className = 'summary-card-head';
-    const badge = document.createElement('span'); badge.className = 'summary-badge'; badge.textContent = '✦ 今日要点';
+    const badge = document.createElement('span'); badge.className = 'summary-badge'; badge.textContent = '✦ 晨报要点';
     const model = document.createElement('span'); model.className = 'summary-model';
-    model.textContent = `by ${summary.model || 'GLM'} · 基于精选 Top ${summary.item_count || ''}`;
+    model.textContent = `by ${summary.model || 'GLM'} · 基于伯乐精选 Top ${summary.item_count || ''}`;
     head.append(badge, model);
 
     const body = document.createElement('div'); body.className = 'summary-card-body';

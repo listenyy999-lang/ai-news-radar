@@ -8,8 +8,8 @@ on:
         type: boolean
         default: false
   schedule:
-    # 每天 08:00 CST（UTC+8）= 00:00 UTC
-    - cron: "0 0 * * *"
+    # 每天 06:00 CST（UTC+8）= 前一天 22:00 UTC
+    - cron: "0 22 * * *"
 
 concurrency:
   group: archive-ai-news-${{ github.ref }}
