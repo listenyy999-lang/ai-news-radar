@@ -1,0 +1,7 @@
+{
+  "date": "2026-06-10",
+  "generated_at": "2026-06-09T23:17:30.067428+00:00",
+  "model": "glm-4.5-air",
+  "summary": "· 谷歌发布Gemini 3.5 Live Translate（实时语音翻译模型），支持多语言对话场景，提升跨语言交流效率。\n· Anthropic发布Claude Fable 5和Claude Mythos 5（两款AI模型），提供长上下文处理和复杂推理能力。\n· Anthropic 发布的 Claude 3.5 Sonnet 模型现已登陆 GitHub Copilot（AI 编程助手），支持代码生成与调试。\n· Nextdoor工程师使用Codex（AI代码生成工具）与GPT-5.5构建开发者工具，提升工程效率。\n· AMD向英国AI领域投资最高20亿英镑，将支持当地AI基础设施建设和研发投入。\n· Hugging Face发布语音智能体代码切换基准测试（评估模型切换效率），含10个模型数据。\n· Anthropic发布Claude Fable模型（支持复杂推理任务），升级版Claude 3.5 Sonnet同步上线。\n· GitHub Copilot CLI 推出自定义 AI 智能体（可配置的终端任务自动化工具），将一次性命令转化为可重复工作流。",
+  "item_count": 8
+}
