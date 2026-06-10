@@ -1,0 +1,7 @@
+{
+  "date": "2026-06-11",
+  "generated_at": "2026-06-10T23:24:59.843723+00:00",
+  "model": "glm-4.5-air",
+  "summary": "· Google推出开源扩散模型DiffusionGemma（通过文本生成图像的AI模型），文本生成速度提升4倍，适用于创意内容生成任务。\n· Anthropic的Claude Desktop启动了一个无法停止的虚拟机（VM），消耗用户资源直至手动重启。\n· GitHub Copilot CLI 通过语言服务器（为编辑器提供代码补全等功能的工具）接入开发者工具，实现代码智能功能。\n· Google发布Gemini 3.5实时语音翻译模型（支持多语言即时互译），提升跨语言沟通效率。\n· 字节AI制药（AI for Science，利用人工智能进行药物研发）业务启动拆分融资，进入产业化阶段。\n· 赛豆科技发布AI汽车品牌AIVA（人工智能虚拟助理），提供车载智能交互功能。\n· 博通联合阿波罗与黑石设立AI XPV平台（AI基础设施投资平台），首期注资350亿美元支持Anthropic算力扩张。\n· Google将用Lens图片、Search Live录音和Translate音频训练AI（大语言模型），用于改进其人工智能服务。",
+  "item_count": 8
+}
