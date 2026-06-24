@@ -1,0 +1,7 @@
+{
+  "date": "2026-06-25",
+  "generated_at": "2026-06-24T23:03:26.464690+00:00",
+  "model": "glm-4.5-air",
+  "summary": "· 谷歌发布Gemini 3.5 Flash模型（大语言模型），新增电脑操作能力，可执行复杂任务如数据分析。\n· OpenAI 推出 AI 事件响应的自助凭证撤销功能（允许用户自行管理 API 访问权限），减少人工干预流程。\n· OpenAI发布GPT-5.5 Instant新版本，对话生成速度提升20%（基于大语言模型的对话系统）。\n· NSA在与Anthropic的纠纷中失去对Mythos（AI安全工具）的访问权限，影响其AI安全分析工作。\n· Qwen-AgentWorld发布原生语言世界模型（模拟多智能体交互环境），在7种Agent测试中超越Claude Opus 4.8和GPT-5.4。\n· OpenAI推出双向AI语音模型Bidi 1（支持实时双向语音交互），已上线测试，用于升级ChatGPT语音功能。\n· OpenAI与博通推出针对大型语言模型（LLM）优化的推理芯片，提升AI模型运算效率。\n· OpenAI发布定制芯片（由博通代工），用于优化其AI模型训练与推理性能。",
+  "item_count": 8
+}
