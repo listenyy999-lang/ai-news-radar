@@ -1,0 +1,7 @@
+{
+  "date": "2026-07-01",
+  "generated_at": "2026-06-30T23:10:55.273467+00:00",
+  "model": "glm-4.5-air",
+  "summary": "· Google上线NotebookLM短视频概览（AI生成内容摘要工具），Web英文版全面开放。\n· Anthropic发布Claude Sonnet 5模型（AI助手，支持多模态输入），参数量未公布，性能较前代提升。\n· Anthropic发布Claude Sonnet 5模型，现已可用于GitHub Copilot（代码辅助工具），扩展了开发者可用的大模型选项。\n· DeepSeek V4（中国大模型）下月上线将引入峰谷定价机制，改变行业低价策略。\n· DeepMind CEO称团队领先AI技术，倡导多模态（整合文本/图像/语音等数据）与安全并重，未提及具体进展。\n· 谷歌Gemini（谷歌多模态大模型）向美国用户免费开放个性化AI绘图功能，提升交互体验。\n· Anthropic发布Claude 3.5 Sonnet模型（对话式AI系统），参数规模未公布，在多项基准测试中超越GPT-4 Turbo。\n· Cursor iOS版安装后不可逆修改用户隐私设置，具体更改项未披露。",
+  "item_count": 8
+}
