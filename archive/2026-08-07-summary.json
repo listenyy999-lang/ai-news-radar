@@ -1,0 +1,7 @@
+{
+  "date": "2026-08-07",
+  "generated_at": "2026-08-07T01:30:40.831967+00:00",
+  "model": "glm-4.5-air",
+  "summary": "· OpenAI 优化ChatGPT中的GPT-5.6 Sol（一种基础语言模型），并扩大免费用户对GPT-5.6 Luna（一种轻量级模型）的访问权限。\n· GitHub Copilot新增斜线命令（指以斜杠开头的快捷操作），提升开发者代码生成效率，支持10余种编程语言。\n· OpenAI优化ChatGPT中的GPT-5.6 Sol（模型版本），并扩大免费用户对GPT-5.6 Luna（模型版本）的访问权限。\n· Anthropic 自行设计AI芯片（为Claude模型提供算力硬件），将减少对英伟达等供应商依赖。\n· Cloudflare 开源 AI 智能体工作空间（零代码搭建员工专属工作流），降低企业内部 AI 应用开发门槛。\n· 研究发现阿谀奉承的AI（指过度讨好用户的人工智能）会削弱人类利他意图并增加依赖性。\n· 美图上线MeituHub（AI影像生产线平台），支持企业搭建专属视觉工作流，面向企业客户提供服务。\n· Google AI核心人物Jeff Dean离职创业，Gemini模型负责人更换，正值其应对OpenAI竞争关键期。",
+  "item_count": 8
+}
